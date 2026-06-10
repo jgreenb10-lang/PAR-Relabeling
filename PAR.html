@@ -517,15 +517,15 @@
       <div class="nav-cluster">
         <button class="btn nav-btn" onclick="nextItemNextBin()">
           <span class="icon">→</span>
-          <span class="txt"><b>Next Item · Next Bin</b><small>Add a new bin with this ref #</small></span>
+          <span class="txt"><b>Next Item · Next Bin</b><small>Place ref # in current bin (01A01 → 01A02)</small></span>
         </button>
         <button class="btn nav-btn" onclick="addEmptyBin()">
           <span class="icon">＋</span>
-          <span class="txt"><b>Add Empty Bin</b><small>Reserve the next slot, leave it blank</small></span>
+          <span class="txt"><b>Next Bin</b><small>Close this bin, open next (01A → 01B01)</small></span>
         </button>
         <button class="btn nav-btn" onclick="nextRack()">
           <span class="icon">⊞</span>
-          <span class="txt"><b>Next Rack</b><small>Start a fresh rack, keep all data</small></span>
+          <span class="txt"><b>Next Rack</b><small>Start a new rack (01 → 02A01)</small></span>
         </button>
       </div>
     </div>
@@ -582,95 +582,102 @@
 </div>
 
 <script>
-  // ---- State: array of racks, each rack = { name, bins:[{ref, isDup, skipped}] } ----
-  // Bins are added on demand — no fixed count. The rack grows as you go.
+  /*
+   * Data model:
+   *   racks[]  →  { name, bins[] }
+   *   bins[]   →  { items[] }          ← a bin is a labelled slot on the rack
+   *   items[]  →  { ref, isDup }       ← each item placed in that bin
+   *
+   * Sequence code: {rackName}{binLetter}{itemNumber padded 2}
+   *   e.g.  01A01, 01A02, 01B01, 02A01
+   *
+   * "Next Item · Next Bin" (Place)  → adds item to current bin, stays in same bin
+   * "Add Empty Bin"                 → closes current bin, opens a new empty one
+   * "Next Rack"                     → starts a new rack (resets to BinA)
+   */
+
   let racks = [];
-  let activeRack = 0;
+  let activeRack = 0;   // index into racks[]
+  let activeBin  = 0;   // index into racks[activeRack].bins[]
 
-  function rackLabel(i) { return String(i + 1).padStart(2, '0'); }
-  function rackName(i)  { return racks[i] ? racks[i].name : rackLabel(i); }
+  // ---- Helpers ----
+  function rackLabel(i)  { return String(i + 1).padStart(2, '0'); }
+  function rackName(i)   { return racks[i] ? racks[i].name : rackLabel(i); }
 
-  // Spreadsheet-style letters so racks can grow past 26 bins: A..Z, AA, AB...
+  // A → Z, AA → AZ, BA... (spreadsheet-style)
   function binLetter(i) {
     let s = '', n = i + 1;
     while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
-    return 'Bin' + s;
+    return s;
   }
 
-  // Full sequence string: R01-BinA-Item01 (uses rack name, not index)
-  function seqString(rackIdx, binIdx) {
-    return `R${rackName(rackIdx)}-${binLetter(binIdx)}-Item${String(binIdx + 1).padStart(2, '0')}`;
+  // Full sequence: 01A01
+  function seqCode(rackIdx, binIdx, itemIdx) {
+    return `${rackName(rackIdx)}${binLetter(binIdx)}${String(itemIdx + 1).padStart(2, '0')}`;
   }
 
   function makeRack(name) {
-    return { name: name || rackLabel(racks.length), bins: [] };
+    return { name: name || rackLabel(racks.length), bins: [ makeBin() ] };
   }
+  function makeBin() { return { items: [] }; }
 
   function init() {
-    racks = [makeRack('01')];
+    racks     = [ makeRack('01') ];
     activeRack = 0;
+    activeBin  = 0;
     render();
   }
 
+  // ---- Rename ----
   function renameActiveRack(val) {
     racks[activeRack].name = val.trim() || rackLabel(activeRack);
-    // Update badge and tabs immediately without full re-render (avoids losing input focus)
     document.getElementById('rackBadge').textContent = 'RACK ' + racks[activeRack].name.toUpperCase();
-    const tabs = document.getElementById('rackTabs');
-    const tabEls = tabs.querySelectorAll('.rack-tab');
-    tabEls.forEach((el, i) => {
-      const countEl = el.querySelector('.count');
-      const placed = racks[i].bins.filter(b => b.ref && b.ref !== '').length;
-      if (i === activeRack) {
-        el.querySelector('.tab-name').textContent = racks[i].name.toUpperCase();
-      }
-    });
-    // Re-render sequence strings in the rows
+    document.getElementById('rackTabs').querySelectorAll('.tab-name')[activeRack].textContent =
+      racks[activeRack].name.toUpperCase();
     renderRows();
   }
 
-  // Duplicate check is GLOBAL across all racks (first occurrence wins)
+  // ---- Dup check (global across all racks/bins/items) ----
   function recomputeDups() {
-    const seen = {}; // ref -> sequence string of first occurrence
+    const seen = {};
     racks.forEach((rack, ri) => {
-      rack.bins.forEach((b, bi) => {
-        b.isDup = false;
-        b.firstSeq = null;
-        if (b.ref) {
-          if (seen[b.ref]) {
-            b.isDup = true;
-            b.firstSeq = seen[b.ref];
-          } else {
-            seen[b.ref] = seqString(ri, bi);
+      rack.bins.forEach((bin, bi) => {
+        bin.items.forEach((it, ii) => {
+          it.isDup = false;
+          if (it.ref) {
+            if (seen[it.ref]) { it.isDup = true; it.firstSeq = seen[it.ref]; }
+            else              { seen[it.ref] = seqCode(ri, bi, ii); }
           }
-        }
+        });
       });
     });
   }
 
   // ---- Core actions ----
-  // Append a new bin to the active rack containing the typed ref #.
+
+  // Place an item in the current bin, then wait for the next one
   function nextItemNextBin() {
     const input = document.getElementById('refInput');
-    const val = input.value.trim();
-    const warn = document.getElementById('dupWarn');
+    const val   = input.value.trim();
+    const warn  = document.getElementById('dupWarn');
     warn.classList.remove('visible');
 
     if (!val) { triggerShake(input); return; }
 
-    // Global duplicate detection (look across all racks, all existing bins)
+    // Global dup check
     let firstSeq = null;
     outer:
-    for (let ri = 0; ri < racks.length; ri++) {
-      for (let bi = 0; bi < racks[ri].bins.length; bi++) {
-        if (racks[ri].bins[bi].ref === val) { firstSeq = seqString(ri, bi); break outer; }
-      }
-    }
+    for (let ri = 0; ri < racks.length; ri++)
+      for (let bi = 0; bi < racks[ri].bins.length; bi++)
+        for (let ii = 0; ii < racks[ri].bins[bi].items.length; ii++)
+          if (racks[ri].bins[bi].items[ii].ref === val) {
+            firstSeq = seqCode(ri, bi, ii); break outer;
+          }
 
-    racks[activeRack].bins.push({ ref: val, isDup: false, skipped: false });
+    racks[activeRack].bins[activeBin].items.push({ ref: val, isDup: false });
 
     if (firstSeq) {
-      warn.textContent = `⚠ Duplicate: "${val}" was already placed at ${firstSeq}`;
+      warn.textContent = `⚠ Duplicate: "${val}" already at ${firstSeq}`;
       warn.classList.add('visible');
     }
 
@@ -680,19 +687,23 @@
     render();
   }
 
-  // Append an intentionally empty bin (reserve a physical slot in the sequence).
+  // Close current bin, open a new empty one on the same rack
   function addEmptyBin() {
-    racks[activeRack].bins.push({ ref: '', isDup: false, skipped: true });
+    const rack = racks[activeRack];
+    rack.bins.push(makeBin());
+    activeBin = rack.bins.length - 1;
+    document.getElementById('dupWarn').classList.remove('visible');
     recomputeDups();
     render();
     document.getElementById('refInput').focus();
   }
 
-  // Create a new rack and switch to it
+  // Start a fresh rack (bin resets to A)
   function nextRack() {
     const nextName = rackLabel(racks.length);
     racks.push(makeRack(nextName));
     activeRack = racks.length - 1;
+    activeBin  = 0;
     document.getElementById('dupWarn').classList.remove('visible');
     recomputeDups();
     render();
@@ -701,33 +712,32 @@
 
   function switchRack(i) {
     activeRack = i;
+    activeBin  = racks[i].bins.length - 1;   // land on the last bin of that rack
     document.getElementById('dupWarn').classList.remove('visible');
     render();
   }
 
-  // Clear a bin's contents but keep the slot, so printed labels stay stable.
-  function removeItem(binIdx) {
-    const b = racks[activeRack].bins[binIdx];
-    b.ref = '';
-    b.skipped = true;
+  // Remove a single item (× button)
+  function removeItem(binIdx, itemIdx) {
+    racks[activeRack].bins[binIdx].items.splice(itemIdx, 1);
     document.getElementById('dupWarn').classList.remove('visible');
     recomputeDups();
     render();
   }
 
-  // Remove the final bin of the active rack (undo an accidental add).
-  // Only ever drops the last slot, so it never re-letters established bins.
+  // Remove the last bin of the active rack (undo)
   function removeLastBin() {
     const rack = racks[activeRack];
-    if (rack.bins.length === 0) return;
-    rack.bins.pop();
+    if (rack.bins.length <= 1) { rack.bins[0].items = []; activeBin = 0; }
+    else                       { rack.bins.pop(); activeBin = rack.bins.length - 1; }
     document.getElementById('dupWarn').classList.remove('visible');
     recomputeDups();
     render();
   }
 
   function clearActiveRack() {
-    racks[activeRack].bins = [];
+    racks[activeRack].bins = [ makeBin() ];
+    activeBin  = 0;
     document.getElementById('dupWarn').classList.remove('visible');
     recomputeDups();
     render();
@@ -737,73 +747,85 @@
   function renderRows() {
     const rack = racks[activeRack];
     const container = document.getElementById('binRows');
-    if (rack.bins.length === 0) {
-      container.innerHTML = `<div class="empty-state">
-        <div class="icon">📦</div>
-        <p>No bins yet — type a reference number and tap <b>Place</b> to add the first bin.</p>
-      </div>`;
-      return;
-    }
-    container.innerHTML = rack.bins.map((b, i) => {
-      const isSkipped = !b.ref || b.ref === '' || b.skipped;
-      let refHtml;
-      if (!isSkipped) {
-        refHtml = `<span class="ref-num">${b.ref}${b.isDup ? '<span class="dup-tag visible">DUP</span>' : ''}</span>`;
+
+    // Flatten all bins + items into display rows
+    let rows = '';
+    rack.bins.forEach((bin, bi) => {
+      const isActiveBin = bi === activeBin;
+      if (bin.items.length === 0) {
+        // Empty bin — show one placeholder row
+        rows += `
+          <div class="bin-row${isActiveBin ? ' next-target' : ''}">
+            <span class="bin-seq">${seqCode(activeRack, bi, 0)}</span>
+            <span class="bin-name">${binLetter(bi)}</span>
+            <span class="ref-num empty">${isActiveBin ? '▸ type next item' : '— empty —'}</span>
+            <span></span>
+          </div>`;
       } else {
-        refHtml = `<span class="ref-num empty">— empty —</span>`;
+        bin.items.forEach((it, ii) => {
+          rows += `
+            <div class="bin-row${it.isDup ? ' is-dup' : ''}">
+              <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
+              <span class="bin-name">${binLetter(bi)}</span>
+              <span class="ref-num">${it.ref}${it.isDup ? '<span class="dup-tag visible">DUP</span>' : ''}</span>
+              <button class="del-btn" onclick="removeItem(${bi},${ii})" title="Remove">×</button>
+            </div>`;
+        });
       }
-      return `
-        <div class="bin-row${b.isDup ? ' is-dup' : ''}">
-          <span class="bin-seq">${seqString(activeRack, i)}</span>
-          <span class="bin-name">${binLetter(i)}</span>
-          ${refHtml}
-          <button class="del-btn" onclick="removeItem(${i})" title="Clear bin">×</button>
-        </div>`;
-    }).join('');
+    });
+
+    container.innerHTML = rows || `<div class="empty-state"><div class="icon">📦</div>
+      <p>No items yet — type a reference number and tap <b>Place</b>.</p></div>`;
   }
 
   function render() {
     const name = racks[activeRack].name;
-    document.getElementById('rackBadge').textContent = 'RACK ' + name.toUpperCase();
-    document.getElementById('rackNameInput').value = name;
+    document.getElementById('rackBadge').textContent   = 'RACK ' + name.toUpperCase();
+    document.getElementById('rackNameInput').value      = name;
 
     // Tabs
     const tabs = document.getElementById('rackTabs');
     tabs.innerHTML = racks.map((r, i) => {
-      const placed = r.bins.filter(b => b.ref && b.ref !== '').length;
+      const itemCount = r.bins.reduce((s, b) => s + b.items.length, 0);
       return `<div class="rack-tab${i === activeRack ? ' active' : ''}" onclick="switchRack(${i})">
-        <span class="tab-name">${r.name.toUpperCase()}</span><span class="count">${placed}/${r.bins.length}</span>
+        <span class="tab-name">${r.name.toUpperCase()}</span><span class="count">${itemCount}</span>
       </div>`;
-    }).join('') + `<button class="btn btn-secondary" style="border-radius:4px;padding:6px 12px;font-size:12px" onclick="nextRack()">+ Rack</button>`;
+    }).join('') +
+      `<button class="btn btn-secondary" style="border-radius:4px;padding:6px 12px;font-size:12px" onclick="nextRack()">+ Rack</button>`;
 
     // Stats
-    const rack = racks[activeRack];
-    const placed = rack.bins.filter(b => b.ref && b.ref !== '').length;
-    const dups = rack.bins.filter(b => b.isDup).length;
-    document.getElementById('statBins').textContent = rack.bins.length;
-    document.getElementById('statFilled').textContent = placed;
-    document.getElementById('statDups').textContent = dups;
+    const rack      = racks[activeRack];
+    const itemCount = rack.bins.reduce((s, b) => s + b.items.length, 0);
+    const dupCount  = rack.bins.reduce((s, b) => s + b.items.filter(it => it.isDup).length, 0);
+    document.getElementById('statBins').textContent   = rack.bins.length;
+    document.getElementById('statFilled').textContent = itemCount;
+    document.getElementById('statDups').textContent   = dupCount;
 
-    const totalPlaced = racks.reduce((s, r) => s + r.bins.filter(b => b.ref && b.ref !== '').length, 0);
-    document.getElementById('exportBtn').disabled = totalPlaced === 0;
+    const totalItems = racks.reduce((s, r) => s + r.bins.reduce((ss, b) => ss + b.items.length, 0), 0);
+    document.getElementById('exportBtn').disabled = totalItems === 0;
 
     renderRows();
   }
 
-  // ---- Excel export: all racks, one continuous sequence ----
+  // ---- Excel export ----
   function exportExcel() {
-    const wb = XLSX.utils.book_new();
+    const wb   = XLSX.utils.book_new();
     const rows = [['Bin Sequence', 'Reference Number', 'Duplicate?']];
 
     racks.forEach((rack, ri) => {
-      rack.bins.forEach((b, bi) => {
-        const ref = (b.ref && b.ref !== '') ? b.ref : '';
-        rows.push([ seqString(ri, bi), ref, b.isDup ? 'DUPLICATE' : '' ]);
+      rack.bins.forEach((bin, bi) => {
+        if (bin.items.length === 0) {
+          rows.push([ seqCode(ri, bi, 0), '', '' ]);   // empty bin still gets a row
+        } else {
+          bin.items.forEach((it, ii) => {
+            rows.push([ seqCode(ri, bi, ii), it.ref, it.isDup ? 'DUPLICATE' : '' ]);
+          });
+        }
       });
     });
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 22 }, { wch: 22 }, { wch: 14 }];
+    ws['!cols'] = [{ wch: 12 }, { wch: 24 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, 'Bin Sequence');
     XLSX.writeFile(wb, 'Deloitte_BinSequence.xlsx');
   }
