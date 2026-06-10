@@ -364,6 +364,38 @@
   }
   .del-btn:hover { color: #c0392b; background: #fde0e0; }
 
+  /* Edit button */
+  .edit-btn {
+    background: none;
+    border: none;
+    color: #bcc5cf;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: color 0.12s, background 0.12s;
+  }
+  .edit-btn:hover { color: var(--accent-dk); background: var(--accent-dim); }
+
+  /* Row action group */
+  .row-actions { display: flex; gap: 2px; justify-content: flex-end; }
+
+  /* Inline edit input inside a bin row */
+  .inline-edit {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--accent-dk);
+    border-radius: 4px;
+    padding: 4px 8px;
+    width: 100%;
+    min-width: 0;
+  }
+  .inline-edit:focus { outline: none; }
+
+  .bin-row.editing { background: var(--accent-dim); }
+
   .empty-state { padding: 60px 0; text-align: center; color: #bcc5cf; }
   .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; }
@@ -500,6 +532,8 @@
     .del-btn { font-size: 22px; padding: 8px; min-width: 40px; }
     .del-btn:hover { background: none; color: #bcc5cf; }
     .del-btn:active { color: #c0392b; background: #fde0e0; }
+    .edit-btn { font-size: 16px; padding: 8px; min-width: 36px; }
+    .edit-btn:active { color: var(--accent-dk); background: var(--accent-dim); }
 
     .bin-row.is-dup { padding-left: 10px; }
   }
@@ -647,7 +681,7 @@
 
   // Full sequence: 01A01
   function seqCode(rackIdx, binIdx, itemIdx) {
-    return `${rackName(rackIdx)}${binLetter(binIdx)}${String(itemIdx + 1).padStart(2, '0')}`;
+    return `'${rackName(rackIdx)}${binLetter(binIdx)}${String(itemIdx + 1).padStart(2, '0')}`;
   }
 
   function makeRack(name) {
@@ -745,8 +779,9 @@
   }
 
   function switchRack(i) {
+    editingCell = null;
     activeRack = i;
-    activeBin  = racks[i].bins.length - 1;   // land on the last bin of that rack
+    activeBin  = racks[i].bins.length - 1;
     document.getElementById('dupWarn').classList.remove('visible');
     render();
   }
@@ -777,6 +812,35 @@
     render();
   }
 
+  // ---- Inline edit ----
+  // editingCell tracks which item is currently being edited: { bi, ii } or null
+  let editingCell = null;
+
+  function startEdit(bi, ii) {
+    editingCell = { bi, ii };
+    renderRows();
+    // Focus the input after render
+    const input = document.getElementById('inline-edit-input');
+    if (input) { input.focus(); input.select(); }
+  }
+
+  function commitEdit(bi, ii) {
+    const input = document.getElementById('inline-edit-input');
+    if (!input) return;
+    const val = input.value.trim();
+    if (val) {
+      racks[activeRack].bins[bi].items[ii].ref = val;
+    }
+    editingCell = null;
+    recomputeDups();
+    render();
+  }
+
+  function cancelEdit() {
+    editingCell = null;
+    renderRows();
+  }
+
   // ---- Render ----
   function renderRows() {
     const rack = racks[activeRack];
@@ -797,13 +861,32 @@
           </div>`;
       } else {
         bin.items.forEach((it, ii) => {
-          rows += `
-            <div class="bin-row${it.isDup ? ' is-dup' : ''}">
-              <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
-              <span class="bin-name">${binLetter(bi)}</span>
-              <span class="ref-num">${it.ref}${it.isDup ? '<span class="dup-tag visible">DUP</span>' : ''}</span>
-              <button class="del-btn" onclick="removeItem(${bi},${ii})" title="Remove">×</button>
-            </div>`;
+          const isEditing = editingCell && editingCell.bi === bi && editingCell.ii === ii;
+          if (isEditing) {
+            rows += `
+              <div class="bin-row editing">
+                <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
+                <span class="bin-name">${binLetter(bi)}</span>
+                <input id="inline-edit-input" class="inline-edit" value="${it.ref.replace(/"/g,'&quot;')}"
+                  autocapitalize="characters" autocorrect="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii})}else if(event.key==='Escape'){cancelEdit()}"
+                  onblur="commitEdit(${bi},${ii})">
+                <div class="row-actions">
+                  <button class="edit-btn" style="color:var(--accent-dk)" onclick="commitEdit(${bi},${ii})" title="Save">✓</button>
+                </div>
+              </div>`;
+          } else {
+            rows += `
+              <div class="bin-row${it.isDup ? ' is-dup' : ''}">
+                <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
+                <span class="bin-name">${binLetter(bi)}</span>
+                <span class="ref-num">${it.ref}${it.isDup ? '<span class="dup-tag visible">DUP</span>' : ''}</span>
+                <div class="row-actions">
+                  <button class="edit-btn" onclick="startEdit(${bi},${ii})" title="Edit">✎</button>
+                  <button class="del-btn"  onclick="removeItem(${bi},${ii})" title="Remove">×</button>
+                </div>
+              </div>`;
+          }
         });
       }
     });
