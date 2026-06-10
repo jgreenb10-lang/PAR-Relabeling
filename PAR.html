@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Bin Sequencer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -169,6 +169,9 @@
   .btn-export { background: var(--steel); color: #fff; width: 100%; padding: 12px; font-size: 13px; }
   .btn-export:hover { background: #000; }
   .btn-export:disabled { background: var(--rule); color: var(--mid); cursor: not-allowed; }
+
+  .btn-save { background: var(--accent-dim); color: var(--accent-dk); border: 1.5px solid #b5d97a; font-weight: 700; }
+  .btn-save:hover { background: #d8f0a0; }
 
   /* nav button cluster */
   .nav-cluster { display: flex; flex-direction: column; gap: 8px; }
@@ -365,6 +368,31 @@
   .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; }
 
+  /* Toast notification */
+  #toast {
+    position: fixed;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--steel);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #toast.success { border-left: 4px solid var(--accent); }
+  #toast.error   { border-left: 4px solid var(--warn); }
+
   /* ============================================================
      MOBILE / iPhone  — stack panels, bigger touch targets,
      sticky add bar, condensed table, iOS-safe insets
@@ -544,9 +572,13 @@
     <div class="divider"></div>
 
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
-      <button class="btn btn-export" id="exportBtn" onclick="exportExcel()" disabled>
+      <button class="btn btn-export" id="exportBtn" onclick="exportCSV()" disabled>
         ⬇ Export to Excel (All Racks)
       </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-save" style="flex:1" onclick="saveProgress()">💾 Save</button>
+        <button class="btn btn-save" style="flex:1" onclick="loadProgress()">📂 Load</button>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" style="flex:1" onclick="removeLastBin()">Remove Last Bin</button>
         <button class="btn btn-secondary" style="flex:1" onclick="clearActiveRack()">Clear Rack</button>
@@ -580,6 +612,8 @@
   </div>
 
 </div>
+
+<div id="toast"></div>
 
 <script>
   /*
@@ -807,15 +841,64 @@
     renderRows();
   }
 
-  // ---- Excel export ----
-  function exportExcel() {
-    const wb   = XLSX.utils.book_new();
+  // ---- Toast ----
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.className = ''; }, 2500);
+  }
+
+  // ---- Save progress (downloads a .json file) ----
+  function saveProgress() {
+    const data = JSON.stringify({ racks, activeRack, activeBin }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'BinSequencer_Save.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✓ Progress saved');
+  }
+
+  // ---- Load progress (reads a previously saved .json file) ----
+  function loadProgress() {
+    const input    = document.createElement('input');
+    input.type     = 'file';
+    input.accept   = '.json';
+    input.onchange = e => {
+      const file   = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const saved = JSON.parse(ev.target.result);
+          if (!saved.racks || !Array.isArray(saved.racks)) throw new Error('Invalid file');
+          racks      = saved.racks;
+          activeRack = saved.activeRack ?? 0;
+          activeBin  = saved.activeBin  ?? 0;
+          recomputeDups();
+          render();
+          showToast('✓ Progress loaded');
+        } catch {
+          showToast('⚠ Could not read save file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  // ---- Export to CSV (opens directly in Excel) ----
+  function exportCSV() {
     const rows = [['Bin Sequence', 'Reference Number', 'Duplicate?']];
 
     racks.forEach((rack, ri) => {
       rack.bins.forEach((bin, bi) => {
         if (bin.items.length === 0) {
-          rows.push([ seqCode(ri, bi, 0), '', '' ]);   // empty bin still gets a row
+          rows.push([ seqCode(ri, bi, 0), '', '' ]);
         } else {
           bin.items.forEach((it, ii) => {
             rows.push([ seqCode(ri, bi, ii), it.ref, it.isDup ? 'DUPLICATE' : '' ]);
@@ -824,10 +907,15 @@
       });
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 12 }, { wch: 24 }, { wch: 12 }];
-    XLSX.utils.book_append_sheet(wb, ws, 'Bin Sequence');
-    XLSX.writeFile(wb, 'Deloitte_BinSequence.xlsx');
+    const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'Deloitte_BinSequence.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✓ Export downloaded');
   }
 
   function triggerShake(el) {
