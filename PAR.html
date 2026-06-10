@@ -5,610 +5,308 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<title>Bin Sequencer</title>
-
+<title>TTJ Bin Sequencer</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #1a1f2e;
+  --steel: #1a1f2e;
+  --header-bg: #12161f;
+  --mid: #6b7280;
+  --rule: #dde2e8;
+  --bg: #f0f3f7;
+  --surface: #fff;
+  --accent: #00b4a6;
+  --accent-dk: #008f84;
+  --accent-dim: #e0f7f5;
+  --warn: #e03e2d;
+  --warn-dim: #fff0ee;
+  --consign: #e67e22;
+  --consign-dim: #fef3e2;
+  --mono: 'Courier New', Courier, monospace;
+  --sans: 'Segoe UI', system-ui, sans-serif;
+}
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
 
-  :root {
-    --ink: #111111;
-    --steel: #1a1a1a;
-    --mid: #6b7280;
-    --rule: #e2e5e9;
-    --bg: #f4f5f6;
-    --surface: #ffffff;
-    --accent: #86bc25;        /* Deloitte green */
-    --accent-dk: #43b02a;
-    --accent-dim: #eef6e0;
-    --warn: #e65c00;
-    --warn-dim: #fff3eb;
-    --ok: #43b02a;
-    --ok-dim: #e7f4e3;
-    --mono: 'Courier New', Courier, monospace;
-    --sans: 'Segoe UI', system-ui, sans-serif;
-  }
+/* HEADER */
+header { background: var(--header-bg); color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--accent); }
+header .logo-wrap { display: flex; align-items: center; gap: 10px; }
+header h1 { font-size: 13px; font-weight: 500; color: #7a8a9a; }
+header .sep { flex: 1; }
+header .rack-badge { font-family: var(--mono); font-size: 12px; background: var(--accent); color: #fff; font-weight: 700; padding: 4px 10px; border-radius: 3px; letter-spacing: 0.06em; }
 
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+.workspace { display: flex; flex: 1; }
 
-  header {
-    background: var(--steel);
-    color: #fff;
-    padding: 0 28px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border-bottom: 3px solid var(--accent);
-  }
+/* LEFT PANEL */
+.panel-input { width: 340px; min-width: 280px; background: var(--surface); border-right: 1px solid var(--rule); padding: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.panel-scroll { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 
-  header .logo {
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: #fff;
-  }
-  header .logo .dot { color: var(--accent); }
+.section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mid); margin-bottom: 6px; }
+.divider { height: 1px; background: var(--rule); }
 
-  header h1 {
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    color: #cfd3d8;
-  }
+input[type="text"], input[type="number"], textarea {
+  font-family: var(--mono); font-size: 13px; padding: 8px 10px;
+  border: 1.5px solid var(--rule); border-radius: 4px;
+  background: var(--bg); color: var(--ink); width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
 
-  header .sep { flex: 1; }
+.add-section { padding: 16px 20px; border-bottom: 1px solid var(--rule); background: var(--surface); position: sticky; top: 0; z-index: 20; }
+.entry-row { display: flex; gap: 8px; }
+#refInput { flex: 1; font-size: 16px; font-family: var(--mono); padding: 11px 12px; border: 2px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+#refInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
+#refInput.shake { animation: shake 0.3s ease; border-color: var(--warn); background: var(--warn-dim); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
-  header .rack-badge {
-    font-family: var(--mono);
-    font-size: 12px;
-    background: var(--accent);
-    color: #111;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 3px;
-    letter-spacing: 0.08em;
-  }
+.dup-warning { display: none; background: var(--warn-dim); border: 1.5px solid #f5b97e; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 8px; }
+.dup-warning.visible { display: block; }
 
-  .workspace { display: flex; flex: 1; gap: 0; }
+.btn { padding: 10px 14px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.08s; white-space: nowrap; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #111; font-weight: 700; }
+.btn-primary:hover { background: var(--accent-dk); color: #fff; }
+.btn-secondary { background: var(--bg); color: var(--mid); border: 1.5px solid var(--rule); }
+.btn-secondary:hover { background: var(--rule); }
+.btn-export { background: var(--steel); color: #fff; width: 100%; padding: 12px; font-size: 13px; }
+.btn-export:hover { background: #000; }
+.btn-export:disabled { background: var(--rule); color: var(--mid); cursor: not-allowed; }
+.btn-save { background: var(--accent-dim); color: var(--accent-dk); border: 1.5px solid #b5d97a; font-weight: 700; }
+.btn-save:hover { background: #d8f0a0; }
+.btn-consign { background: var(--consign-dim); color: var(--consign); border: 1.5px solid #c4b5fd; font-weight: 700; }
+.btn-consign:hover { background: #ede9fe; }
+.btn-consign.active { background: var(--consign); color: #fff; border-color: var(--consign); }
 
-  /* LEFT PANEL */
-  .panel-input {
-    width: 350px;
-    min-width: 290px;
-    background: var(--surface);
-    border-right: 1px solid var(--rule);
-    padding: 22px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    overflow-y: auto;
-  }
+.nav-cluster { display: flex; flex-direction: column; gap: 7px; }
+.nav-btn { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--bg); border: 1.5px solid var(--rule); color: var(--ink); padding: 10px 12px; border-radius: 4px; }
+.nav-btn:hover { border-color: var(--accent-dk); background: var(--accent-dim); }
+.nav-btn .icon { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent-dk); width: 20px; text-align: center; flex-shrink: 0; }
+.nav-btn .txt { display: flex; flex-direction: column; gap: 1px; }
+.nav-btn .txt b { font-size: 12.5px; font-weight: 700; }
+.nav-btn .txt small { font-size: 10.5px; color: var(--mid); }
 
-  .section-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--mid);
-    margin-bottom: 8px;
-  }
+.stats-row { display: flex; gap: 8px; }
+.stat-box { flex: 1; background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 6px; text-align: center; }
+.stat-box .num { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1; }
+.stat-box .lbl { font-size: 9px; color: var(--mid); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.stat-box.warn-stat .num { color: var(--warn); }
 
-  .config-row { display: flex; gap: 10px; align-items: flex-end; }
-  .field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.footer-btns { padding: 16px 20px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }
 
-  label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--mid);
-    letter-spacing: 0.04em;
-  }
+/* RIGHT PANEL */
+.panel-rack { flex: 1; padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 
-  input[type="text"], input[type="number"] {
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 8px 10px;
-    border: 1.5px solid var(--rule);
-    border-radius: 4px;
-    background: var(--bg);
-    color: var(--ink);
-    transition: border-color 0.15s;
-    width: 100%;
-  }
-  input:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
+.rack-tabs { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.rack-tab { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 4px 4px 0 0; border: 1px solid var(--rule); border-bottom: none; background: var(--bg); color: var(--mid); cursor: pointer; letter-spacing: 0.05em; transition: background 0.12s; }
+.rack-tab:hover { background: var(--accent-dim); }
+.rack-tab.active { background: var(--steel); color: #fff; }
+.rack-tab.consign-tab { border-top: 2px solid var(--consign); }
+.rack-tab.consign-tab.active { background: var(--consign); }
+.rack-tab .count { opacity: 0.6; font-size: 10px; margin-left: 4px; }
 
-  .divider { height: 1px; background: var(--rule); }
+.rack-container { background: var(--surface); border: 2px solid var(--steel); border-radius: 0 6px 6px 6px; overflow: hidden; }
 
-  .entry-row { display: flex; gap: 8px; }
+/* Top bar of rack container: Rack ID + Consignment toggle */
+.rack-meta-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--accent-dim); border-bottom: 1px solid #d6eab2; }
+.rack-meta-bar label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-dk); white-space: nowrap; }
+.rack-meta-bar input { font-family: var(--mono); font-size: 15px; font-weight: 700; background: #fff; border: 1.5px solid #b5d97a; border-radius: 4px; padding: 6px 10px; flex: 1; letter-spacing: 0.06em; text-transform: uppercase; max-width: 120px; }
+.rack-meta-bar input:focus { outline: none; border-color: var(--accent-dk); }
+.rack-meta-bar .sep { flex: 1; }
 
-  #refInput {
-    flex: 1;
-    font-size: 14px;
-    font-family: var(--mono);
-    padding: 10px 12px;
-    border: 2px solid var(--rule);
-    border-radius: 4px;
-    background: var(--bg);
-    color: var(--ink);
-    transition: border-color 0.15s;
-  }
-  #refInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
+.rack-col-header { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; background: var(--steel); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; gap: 10px; }
 
-  #refInput.shake { animation: shake 0.3s ease; border-color: var(--warn); background: var(--warn-dim); }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-  }
+/* Bin group */
+.bin-group { border-bottom: 2px solid #eaf0f5; }
+.bin-group:last-child { border-bottom: none; }
 
-  .btn {
-    padding: 10px 14px;
-    border: none;
-    border-radius: 4px;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.08s, border-color 0.15s;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-  }
-  .btn:active { transform: scale(0.97); }
+.bin-header { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: #f8fafb; border-bottom: 1px solid var(--rule); }
+.bin-header-letter { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--mid); letter-spacing: 0.08em; }
+.bin-letter-edit { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 7px; width: 72px; color: var(--ink); text-transform: uppercase; }
+.bin-letter-edit:focus { outline: none; border-color: var(--accent-dk); }
+.bin-header .add-item-here { margin-left: auto; font-size: 11px; padding: 4px 10px; }
+.bin-header .add-bin-after { font-size: 11px; padding: 4px 10px; }
 
-  .btn-primary { background: var(--accent); color: #111; font-weight: 700; }
-  .btn-primary:hover { background: var(--accent-dk); color: #fff; }
+.bin-row { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f0f3f6; transition: background 0.1s; }
+.bin-row:last-child { border-bottom: none; }
+.bin-row:hover { background: #f7f9fb; }
+.bin-row.is-dup { background: var(--warn-dim); border-left: 4px solid var(--warn); padding-left: 10px; }
+.bin-row.is-dup:hover { background: #fdecd7; }
+.bin-row.editing { background: var(--accent-dim); }
 
-  .btn-secondary { background: var(--bg); color: var(--mid); border: 1.5px solid var(--rule); }
-  .btn-secondary:hover { background: var(--rule); }
+.bin-seq { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-dk); }
+.bin-seq-edit { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border: 2px solid var(--accent-dk); border-radius: 3px; padding: 3px 7px; width: 100%; text-transform: uppercase; color: var(--accent-dk); }
+.bin-seq-edit:focus { outline: none; }
+.bin-name-cell { font-family: var(--mono); font-size: 11px; color: var(--steel); font-weight: 600; }
+.ref-num { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.ref-num.empty { color: #bcc5cf; font-style: italic; font-size: 12px; font-family: var(--sans); }
+.notes-cell { font-size: 11px; color: var(--mid); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .btn-export { background: var(--steel); color: #fff; width: 100%; padding: 12px; font-size: 13px; }
-  .btn-export:hover { background: #000; }
-  .btn-export:disabled { background: var(--rule); color: var(--mid); cursor: not-allowed; }
+.dup-tag { display: none; background: var(--warn); color: #fff; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 5px; border-radius: 3px; margin-left: 6px; }
+.dup-tag.visible { display: inline-block; }
 
-  .btn-save { background: var(--accent-dim); color: var(--accent-dk); border: 1.5px solid #b5d97a; font-weight: 700; }
-  .btn-save:hover { background: #d8f0a0; }
+.row-actions { display: flex; gap: 2px; justify-content: flex-end; align-items: center; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 3px; color: #bcc5cf; transition: color 0.1s, background 0.1s; }
+.icon-btn:hover { color: var(--ink); background: var(--rule); }
+.icon-btn.del:hover { color: #c0392b; background: #fde0e0; }
+.icon-btn.note-btn.has-note { color: var(--accent-dk); }
 
-  /* nav button cluster */
-  .nav-cluster { display: flex; flex-direction: column; gap: 8px; }
-  .nav-cluster .nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-align: left;
-    background: var(--bg);
-    border: 1.5px solid var(--rule);
-    color: var(--ink);
-    padding: 10px 12px;
-  }
-  .nav-cluster .nav-btn:hover { border-color: var(--accent-dk); background: var(--accent-dim); }
-  .nav-cluster .nav-btn .icon {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent-dk);
-    width: 22px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .nav-cluster .nav-btn .txt { display: flex; flex-direction: column; gap: 1px; }
-  .nav-cluster .nav-btn .txt b { font-size: 12.5px; font-weight: 700; }
-  .nav-cluster .nav-btn .txt small { font-size: 10.5px; color: var(--mid); font-weight: 500; }
+.inline-edit { font-family: var(--mono); font-size: 13px; color: var(--ink); background: #fff; border: 2px solid var(--accent-dk); border-radius: 4px; padding: 4px 8px; width: 100%; min-width: 0; }
+.inline-edit:focus { outline: none; }
 
-  .dup-warning {
-    display: none;
-    background: var(--warn-dim);
-    border: 1.5px solid #f5b97e;
-    border-radius: 4px;
-    padding: 8px 10px;
-    font-size: 12px;
-    color: var(--warn);
-    font-weight: 600;
-    margin-top: 8px;
-  }
-  .dup-warning.visible { display: block; }
+/* Notes dropdown */
+.notes-row { display: none; grid-column: 1 / -1; padding: 6px 14px 10px; }
+.notes-row.open { display: block; }
+.notes-row textarea { font-size: 13px; font-family: var(--sans); resize: vertical; min-height: 52px; padding: 8px; border-radius: 4px; }
 
-  .stats-row { display: flex; gap: 8px; }
-  .stat-box {
-    flex: 1;
-    background: var(--bg);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: 10px 8px;
-    text-align: center;
-  }
-  .stat-box .num { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1; }
-  .stat-box .lbl { font-size: 9.5px; color: var(--mid); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
-  .stat-box.warn-stat .num { color: var(--warn); }
+/* Add-bin-between button row */
+.add-bin-row { display: flex; align-items: center; gap: 8px; padding: 5px 14px; background: var(--bg); border-bottom: 1px solid var(--rule); }
+.add-bin-row button { font-size: 11px; padding: 4px 10px; color: var(--accent-dk); background: var(--accent-dim); border: 1px solid #b5d97a; border-radius: 3px; cursor: pointer; font-weight: 600; }
+.add-bin-row button:hover { background: #d8f0a0; }
+.add-bin-row span { font-size: 10px; color: var(--mid); }
 
-  /* RIGHT PANEL */
-  .panel-rack {
-    flex: 1;
-    padding: 22px 28px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
+.empty-state { padding: 50px 0; text-align: center; color: #bcc5cf; }
+.empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; }
 
-  .rack-tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .rack-tab {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 4px 4px 0 0;
-    border: 1px solid var(--rule);
-    border-bottom: none;
-    background: var(--bg);
-    color: var(--mid);
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: background 0.12s, color 0.12s;
-  }
-  .rack-tab:hover { background: var(--accent-dim); }
-  .rack-tab.active { background: var(--steel); color: #fff; }
-  .rack-tab .count { opacity: 0.6; font-size: 10px; margin-left: 4px; }
+/* Toast */
+#toast { position: fixed; bottom: max(20px,env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%) translateY(16px); background: var(--steel); color: #fff; padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-left: 4px solid var(--accent); }
+#toast.error { border-left: 4px solid var(--warn); }
 
-  /* Inline rack-name editor on the active tab */
-  .rack-tab-input {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid var(--accent);
-    color: #fff;
-    width: 72px;
-    padding: 0 2px;
-    outline: none;
-    text-transform: uppercase;
-  }
-  .rack-tab-input::selection { background: var(--accent); color: #fff; }
-
-  /* Rack name field in the panel */
-  .rack-name-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--accent-dim);
-    border-bottom: 1px solid #d6eab2;
-  }
-  .rack-name-row label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent-dk);
-    white-space: nowrap;
-  }
-  .rack-name-row input {
-    font-family: var(--mono);
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--ink);
-    background: #fff;
-    border: 1.5px solid #b5d97a;
-    border-radius: 4px;
-    padding: 7px 10px;
-    flex: 1;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .rack-name-row input:focus { outline: none; border-color: var(--accent-dk); }
-
-  .rack-container { background: var(--surface); border: 2px solid var(--steel); border-radius: 0 6px 6px 6px; overflow: hidden; }
-
-  .rack-col-header {
-    display: grid;
-    grid-template-columns: 150px 90px 1fr 60px;
-    background: var(--steel);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 8px 16px;
-    gap: 12px;
-  }
-
-  .bin-row {
-    display: grid;
-    grid-template-columns: 150px 90px 1fr 60px;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--rule);
-    transition: background 0.12s;
-  }
-  .bin-row:last-child { border-bottom: none; }
-  .bin-row:hover { background: #f7f9fb; }
-  .bin-row.is-dup { background: var(--warn-dim); border-left: 4px solid var(--warn); padding-left: 12px; }
-  .bin-row.is-dup:hover { background: #fdecd7; }
-
-  .bin-seq { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-dk); letter-spacing: 0.03em; }
-  .bin-name { font-family: var(--mono); font-size: 12px; color: var(--steel); font-weight: 600; }
-  .ref-num { font-family: var(--mono); font-size: 13px; color: var(--ink); }
-  .ref-num.empty { color: #bcc5cf; font-style: italic; font-size: 12px; font-family: var(--sans); }
-
-  .dup-tag {
-    display: none;
-    background: var(--warn);
-    color: #fff;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 2px 6px;
-    border-radius: 3px;
-    margin-left: 8px;
-  }
-  .dup-tag.visible { display: inline-block; }
-
-  .del-btn {
-    background: none;
-    border: none;
-    color: #bcc5cf;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    transition: color 0.12s, background 0.12s;
-    justify-self: end;
-  }
-  .del-btn:hover { color: #c0392b; background: #fde0e0; }
-
-  /* Edit button */
-  .edit-btn {
-    background: none;
-    border: none;
-    color: #bcc5cf;
-    cursor: pointer;
-    font-size: 13px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    transition: color 0.12s, background 0.12s;
-  }
-  .edit-btn:hover { color: var(--accent-dk); background: var(--accent-dim); }
-
-  /* Row action group */
-  .row-actions { display: flex; gap: 2px; justify-content: flex-end; }
-
-  /* Inline edit input inside a bin row */
-  .inline-edit {
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--ink);
-    background: #fff;
-    border: 2px solid var(--accent-dk);
-    border-radius: 4px;
-    padding: 4px 8px;
-    width: 100%;
-    min-width: 0;
-  }
-  .inline-edit:focus { outline: none; }
-
-  .bin-row.editing { background: var(--accent-dim); }
-
-  .empty-state { padding: 60px 0; text-align: center; color: #bcc5cf; }
-  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
-
-  /* Toast notification */
-  #toast {
-    position: fixed;
-    bottom: max(24px, env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--steel);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    opacity: 0;
-    transition: opacity 0.2s, transform 0.2s;
-    pointer-events: none;
-    z-index: 999;
-    white-space: nowrap;
-  }
-  #toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  #toast.success { border-left: 4px solid var(--accent); }
-  #toast.error   { border-left: 4px solid var(--warn); }
-
-  /* ============================================================
-     MOBILE / iPhone  — stack panels, bigger touch targets,
-     sticky add bar, condensed table, iOS-safe insets
-     ============================================================ */
-  @media (max-width: 760px) {
-
-    html, body { -webkit-text-size-adjust: 100%; }
-    body { overflow-x: hidden; }
-
-    header {
-      height: auto;
-      min-height: 52px;
-      padding: 10px 16px;
-      padding-top: max(10px, env(safe-area-inset-top));
-      gap: 10px;
-      flex-wrap: nowrap;
-    }
-    header .logo { font-size: 17px; }
-    header h1 { font-size: 12px; }
-    header > div[style*="width:1px"] { height: 16px !important; }
-    header .rack-badge { font-size: 11px; padding: 3px 8px; }
-
-    .workspace { flex-direction: column; }
-
-    /* Input panel becomes the top section, full width, no fixed width */
-    .panel-input {
-      width: 100%;
-      min-width: 0;
-      border-right: none;
-      border-bottom: 1px solid var(--rule);
-      padding: 16px;
-      gap: 16px;
-      overflow-y: visible;
-    }
-
-    /* Make the Add Item bar sticky so it's always reachable while scrolling */
-    .panel-input .add-section {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      background: var(--surface);
-      padding: 12px 16px;
-      margin: -16px -16px 0;
-      border-bottom: 1px solid var(--rule);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    /* 16px+ inputs prevent iOS auto-zoom on focus */
-    input[type="text"], input[type="number"], #refInput {
-      font-size: 16px;
-      padding: 12px 12px;
-    }
-    #refInput { padding: 14px 12px; }
-
-    /* Larger, thumb-friendly buttons */
-    .btn { padding: 13px 16px; font-size: 14px; min-height: 46px; }
-    .btn-primary { min-width: 78px; }
-
-    .nav-cluster .nav-btn { padding: 13px 14px; min-height: 56px; }
-    .nav-cluster .nav-btn .txt b { font-size: 14px; }
-    .nav-cluster .nav-btn .txt small { font-size: 12px; }
-    .nav-cluster .nav-btn .icon { font-size: 16px; width: 26px; }
-
-    .stat-box { padding: 12px 6px; }
-    .stat-box .num { font-size: 22px; }
-    .stat-box .lbl { font-size: 9px; }
-
-    /* Right panel / rack view */
-    .panel-rack {
-      padding: 16px;
-      padding-bottom: max(24px, env(safe-area-inset-bottom));
-    }
-
-    /* Tabs scroll horizontally instead of wrapping into a tall stack */
-    .rack-tabs {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 2px;
-      scrollbar-width: none;
-    }
-    .rack-tabs::-webkit-scrollbar { display: none; }
-    .rack-tab { flex-shrink: 0; padding: 9px 14px; font-size: 13px; }
-    .rack-tabs .btn { flex-shrink: 0; }
-
-    /* Condense the table: drop the wide Bin column, tighten sequence */
-    .rack-col-header,
-    .bin-row {
-      grid-template-columns: 1fr auto 40px;
-      gap: 10px;
-      padding: 12px 14px;
-    }
-    /* Hide the standalone "Bin" column header + cell (bin is shown inside seq) */
-    .rack-col-header span:nth-child(2),
-    .bin-row .bin-name { display: none; }
-
-    .rack-col-header span:nth-child(3) { text-align: right; }
-
-    .bin-seq { font-size: 13px; }
-    .ref-num { font-size: 15px; text-align: right; }
-    .ref-num.empty { font-size: 13px; }
-    .dup-tag { display: block; margin: 4px 0 0; width: fit-content; margin-left: auto; }
-
-    /* Bigger delete tap target */
-    .del-btn { font-size: 22px; padding: 8px; min-width: 40px; }
-    .del-btn:hover { background: none; color: #bcc5cf; }
-    .del-btn:active { color: #c0392b; background: #fde0e0; }
-    .edit-btn { font-size: 16px; padding: 8px; min-width: 36px; }
-    .edit-btn:active { color: var(--accent-dk); background: var(--accent-dim); }
-
-    .bin-row.is-dup { padding-left: 10px; }
-  }
-
-  /* Very narrow phones */
-  @media (max-width: 380px) {
-    header h1 { display: none; }
-    .config-row { flex-direction: column; align-items: stretch; }
-    .bin-seq { font-size: 12px; }
-  }
+/* MOBILE */
+@media (max-width: 760px) {
+  html,body { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+  header { height: auto; min-height: 54px; padding: 10px 14px; padding-top: max(10px,env(safe-area-inset-top)); }
+  header .logo-wrap svg { width: 36px; height: 36px; }
+  header .logo-wrap span:first-child { font-size: 16px !important; }
+  header h1 { font-size: 12px; }
+  .workspace { flex-direction: column; }
+  .panel-input { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--rule); }
+  .panel-scroll { padding: 14px; gap: 14px; }
+  input[type="text"],input[type="number"],#refInput { font-size: 16px; padding: 12px; }
+  .btn { padding: 13px 14px; font-size: 14px; min-height: 46px; }
+  .panel-rack { padding: 14px; padding-bottom: max(24px,env(safe-area-inset-bottom)); }
+  .rack-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .rack-tabs::-webkit-scrollbar { display: none; }
+  .rack-tab { flex-shrink: 0; }
+  .rack-col-header,.bin-row { grid-template-columns: 90px 50px 1fr 80px; gap: 8px; padding: 10px 12px; }
+  .rack-col-header span:nth-child(4),.bin-row .notes-cell { display: none; }
+  .icon-btn { font-size: 18px; padding: 6px; }
+  .bin-header { padding: 6px 10px; }
+}
+@media (max-width: 380px) {
+  header h1 { display: none; }
+  .rack-col-header,.bin-row { grid-template-columns: 80px 1fr 60px; gap: 6px; }
+  .rack-col-header span:nth-child(2),.bin-row .bin-name-cell { display: none; }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">Deloitte<span class="dot">.</span></div>
-  <div style="width:1px;height:20px;background:#3a3a3a"></div>
-  <h1>Bin Sequencer</h1>
+  <div class="logo-wrap">
+    <!-- Pure CSS logo mark — no SVG paths -->
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:52px;
+      height:44px;
+      background:linear-gradient(135deg,#00b4a6 0%,#007d78 100%);
+      border-radius:10px;
+      box-shadow:0 2px 8px rgba(0,180,166,0.35);
+      flex-shrink:0;
+    ">
+      <span style="
+        font-family:'Arial Black','Arial',sans-serif;
+        font-weight:900;
+        font-size:18px;
+        color:#fff;
+        letter-spacing:1px;
+        line-height:1;
+        user-select:none;
+      ">TTJ</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-left:10px">
+      <span style="
+        font-family:'Arial Black','Arial',sans-serif;
+        font-size:22px;
+        font-weight:900;
+        color:#fff;
+        letter-spacing:0.1em;
+        line-height:1;
+      ">TTJ</span>
+      <span style="
+        font-family:'Segoe UI',system-ui,sans-serif;
+        font-size:9px;
+        font-weight:700;
+        color:#00b4a6;
+        letter-spacing:0.2em;
+        text-transform:uppercase;
+      ">Bin Sequencer</span>
+    </div>
+  </div>
+  <div style="width:1px;height:28px;background:#2a3344;margin:0 4px"></div>
   <div class="sep"></div>
   <div class="rack-badge" id="rackBadge">RACK 01</div>
 </header>
 
 <div class="workspace">
 
-  <!-- LEFT: Input Panel -->
   <div class="panel-input">
 
     <div class="add-section">
       <div class="section-label">Add Item</div>
       <div class="entry-row">
-        <input type="text" id="refInput" placeholder="Reference number…" autocomplete="off"
-          autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
-          onkeydown="if(event.key==='Enter') nextItemNextBin()">
-        <button class="btn btn-primary" onclick="nextItemNextBin()">Place</button>
+        <input type="text" id="refInput" placeholder="Reference number…"
+          autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
+          onkeydown="if(event.key==='Enter') placeItem()">
+        <button class="btn btn-primary" onclick="placeItem()">Place</button>
       </div>
       <div class="dup-warning" id="dupWarn"></div>
     </div>
 
-    <div class="divider"></div>
+    <div class="panel-scroll">
 
-    <div>
-      <div class="section-label">Navigation</div>
-      <div class="nav-cluster">
-        <button class="btn nav-btn" onclick="nextItemNextBin()">
-          <span class="icon">→</span>
-          <span class="txt"><b>Next Item · Next Bin</b><small>Place ref # in current bin (01A01 → 01A02)</small></span>
-        </button>
-        <button class="btn nav-btn" onclick="addEmptyBin()">
-          <span class="icon">＋</span>
-          <span class="txt"><b>Next Bin</b><small>Close this bin, open next (01A → 01B01)</small></span>
-        </button>
-        <button class="btn nav-btn" onclick="nextRack()">
-          <span class="icon">⊞</span>
-          <span class="txt"><b>Next Rack</b><small>Start a new rack (01 → 02A01)</small></span>
-        </button>
+      <div>
+        <div class="section-label">Navigation</div>
+        <div class="nav-cluster">
+          <button class="btn nav-btn" onclick="placeItem()">
+            <span class="icon">→</span>
+            <span class="txt"><b>Place Item</b><small>Add ref # to current bin (01A01→01A02)</small></span>
+          </button>
+          <button class="btn nav-btn" onclick="nextBin()">
+            <span class="icon">⬇</span>
+            <span class="txt"><b>Next Bin</b><small>Move to next bin (01A→01B01)</small></span>
+          </button>
+          <button class="btn nav-btn" onclick="nextRack()">
+            <span class="icon">⊞</span>
+            <span class="txt"><b>Next Rack</b><small>Start new rack (01→02A01)</small></span>
+          </button>
+          <button class="btn nav-btn btn-consign" id="consignBtn" onclick="toggleConsignment()">
+            <span class="icon">C</span>
+            <span class="txt"><b>Consignment</b><small>Mark this rack as consignment</small></span>
+          </button>
+        </div>
       </div>
+
+      <div class="divider"></div>
+
+      <div>
+        <div class="section-label">Active Rack</div>
+        <div class="stats-row">
+          <div class="stat-box"><div class="num" id="statBins">0</div><div class="lbl">Bins</div></div>
+          <div class="stat-box"><div class="num" id="statItems">0</div><div class="lbl">Items</div></div>
+          <div class="stat-box warn-stat"><div class="num" id="statDups">0</div><div class="lbl">Dups</div></div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="divider"></div>
-
-    <div>
-      <div class="section-label">Active Rack Summary</div>
-      <div class="stats-row">
-        <div class="stat-box"><div class="num" id="statBins">0</div><div class="lbl">Bins</div></div>
-        <div class="stat-box"><div class="num" id="statFilled">0</div><div class="lbl">Placed</div></div>
-        <div class="stat-box warn-stat"><div class="num" id="statDups">0</div><div class="lbl">Dups</div></div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
-      <button class="btn btn-export" id="exportBtn" onclick="exportCSV()" disabled>
-        ⬇ Export to Excel (All Racks)
-      </button>
+    <div class="footer-btns">
+      <button class="btn btn-export" id="exportBtn" onclick="exportCSV()" disabled>⬇ Export to Excel (All Racks)</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-save" style="flex:1" onclick="saveProgress()">💾 Save</button>
         <button class="btn btn-save" style="flex:1" onclick="loadProgress()">📂 Load</button>
@@ -621,28 +319,22 @@
 
   </div>
 
-  <!-- RIGHT: Rack View -->
   <div class="panel-rack">
-
     <div class="rack-tabs" id="rackTabs"></div>
-
     <div class="rack-container">
-      <div class="rack-name-row">
+      <div class="rack-meta-bar">
         <label>Rack ID</label>
         <input type="text" id="rackNameInput" maxlength="20"
-          autocapitalize="characters" autocorrect="off" spellcheck="false"
-          placeholder="e.g. 01, A3, SHELF-2"
+          autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="01"
           oninput="renameActiveRack(this.value)">
+        <div class="sep"></div>
+        <span id="consignBadge" style="display:none;background:var(--consign);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:3px;letter-spacing:0.06em">CONSIGNMENT</span>
       </div>
       <div class="rack-col-header">
-        <span>Sequence</span>
-        <span>Bin</span>
-        <span>Reference #</span>
-        <span></span>
+        <span>Sequence</span><span>Bin</span><span>Reference #</span><span>Notes</span><span></span>
       </div>
       <div id="binRows"></div>
     </div>
-
   </div>
 
 </div>
@@ -650,366 +342,441 @@
 <div id="toast"></div>
 
 <script>
-  /*
-   * Data model:
-   *   racks[]  →  { name, bins[] }
-   *   bins[]   →  { items[] }          ← a bin is a labelled slot on the rack
-   *   items[]  →  { ref, isDup }       ← each item placed in that bin
-   *
-   * Sequence code: {rackName}{binLetter}{itemNumber padded 2}
-   *   e.g.  01A01, 01A02, 01B01, 02A01
-   *
-   * "Next Item · Next Bin" (Place)  → adds item to current bin, stays in same bin
-   * "Add Empty Bin"                 → closes current bin, opens a new empty one
-   * "Next Rack"                     → starts a new rack (resets to BinA)
-   */
+/*
+ * Model:  racks[] → { name, isConsignment, bins[] }
+ *         bins[]  → { letter, items[] }
+ *         items[] → { ref, note, isDup, seqOverride }
+ *
+ * Sequence: '{rackName}{binLetter}{itemIdx padded 2}'  e.g. '01A01
+ * seqOverride lets the user manually edit the displayed sequence code.
+ */
 
-  let racks = [];
-  let activeRack = 0;   // index into racks[]
-  let activeBin  = 0;   // index into racks[activeRack].bins[]
+let racks      = [];
+let activeRack = 0;
+let activeBin  = 0;
+let editingCell = null;  // { bi, ii, field: 'ref'|'seq' }
+let openNotes   = null;  // { bi, ii }
 
-  // ---- Helpers ----
-  function rackLabel(i)  { return String(i + 1).padStart(2, '0'); }
-  function rackName(i)   { return racks[i] ? racks[i].name : rackLabel(i); }
+// ---- Helpers ----
+function numericIncrement(name) {
+  // Try to parse the name as a number and increment it with same zero-padding
+  const m = name.match(/^(\d+)$/);
+  if (m) return String(parseInt(m[1]) + 1).padStart(m[1].length, '0');
+  // Try trailing number: "SHELF-3" → "SHELF-4"
+  const m2 = name.match(/^(.*?)(\d+)$/);
+  if (m2) return m2[1] + String(parseInt(m2[2]) + 1).padStart(m2[2].length, '0');
+  return String(racks.length + 1).padStart(2, '0');
+}
 
-  // A → Z, AA → AZ, BA... (spreadsheet-style)
-  function binLetter(i) {
-    let s = '', n = i + 1;
-    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
-    return s;
-  }
+function binLetter(i) {
+  let s = '', n = i + 1;
+  while (n > 0) { const r = (n-1)%26; s = String.fromCharCode(65+r)+s; n = Math.floor((n-1)/26); }
+  return s;
+}
 
-  // Full sequence: 01A01
-  function seqCode(rackIdx, binIdx, itemIdx) {
-    return `'${rackName(rackIdx)}${binLetter(binIdx)}${String(itemIdx + 1).padStart(2, '0')}`;
-  }
+function rackName(i) { return racks[i]?.name ?? String(i+1).padStart(2,'0'); }
 
-  function makeRack(name) {
-    return { name: name || rackLabel(racks.length), bins: [ makeBin() ] };
-  }
-  function makeBin() { return { items: [] }; }
+function seqCode(rackIdx, bin, itemIdx) {
+  const it = bin.items[itemIdx];
+  if (it?.seqOverride) return it.seqOverride;
+  return `'${rackName(rackIdx)}${bin.letter || binLetter(racks[rackIdx]?.bins.indexOf(bin))}${String(itemIdx+1).padStart(2,'0')}`;
+}
 
-  function init() {
-    racks     = [ makeRack('01') ];
-    activeRack = 0;
-    activeBin  = 0;
-    render();
-  }
+function makeRack(name) { return { name: name ?? '01', isConsignment: false, bins: [makeBin(0)] }; }
+function makeBin(idx)   { return { letter: binLetter(idx), items: [] }; }
+function makeItem(ref)  { return { ref, note: '', isDup: false, seqOverride: null }; }
 
-  // ---- Rename ----
-  function renameActiveRack(val) {
-    racks[activeRack].name = val.trim() || rackLabel(activeRack);
-    document.getElementById('rackBadge').textContent = 'RACK ' + racks[activeRack].name.toUpperCase();
-    document.getElementById('rackTabs').querySelectorAll('.tab-name')[activeRack].textContent =
-      racks[activeRack].name.toUpperCase();
-    renderRows();
-  }
+function init() { racks = [makeRack('01')]; activeRack = 0; activeBin = 0; render(); }
 
-  // ---- Dup check (global across all racks/bins/items) ----
-  function recomputeDups() {
-    const seen = {};
-    racks.forEach((rack, ri) => {
-      rack.bins.forEach((bin, bi) => {
-        bin.items.forEach((it, ii) => {
-          it.isDup = false;
-          if (it.ref) {
-            if (seen[it.ref]) { it.isDup = true; it.firstSeq = seen[it.ref]; }
-            else              { seen[it.ref] = seqCode(ri, bi, ii); }
-          }
-        });
-      });
-    });
-  }
+// ---- Rename rack ----
+function renameActiveRack(val) {
+  racks[activeRack].name = val.trim() || String(activeRack+1).padStart(2,'0');
+  document.getElementById('rackBadge').textContent = 'RACK ' + racks[activeRack].name.toUpperCase();
+  const tabs = document.getElementById('rackTabs').querySelectorAll('.tab-name');
+  if (tabs[activeRack]) tabs[activeRack].textContent = racks[activeRack].name.toUpperCase();
+  renderRows();
+}
 
-  // ---- Core actions ----
+// ---- Consignment toggle ----
+function toggleConsignment() {
+  racks[activeRack].isConsignment = !racks[activeRack].isConsignment;
+  render();
+}
 
-  // Place an item in the current bin, then wait for the next one
-  function nextItemNextBin() {
-    const input = document.getElementById('refInput');
-    const val   = input.value.trim();
-    const warn  = document.getElementById('dupWarn');
-    warn.classList.remove('visible');
-
-    if (!val) { triggerShake(input); return; }
-
-    // Global dup check
-    let firstSeq = null;
-    outer:
-    for (let ri = 0; ri < racks.length; ri++)
-      for (let bi = 0; bi < racks[ri].bins.length; bi++)
-        for (let ii = 0; ii < racks[ri].bins[bi].items.length; ii++)
-          if (racks[ri].bins[bi].items[ii].ref === val) {
-            firstSeq = seqCode(ri, bi, ii); break outer;
-          }
-
-    racks[activeRack].bins[activeBin].items.push({ ref: val, isDup: false });
-
-    if (firstSeq) {
-      warn.textContent = `⚠ Duplicate: "${val}" already at ${firstSeq}`;
-      warn.classList.add('visible');
+// ---- Dup check: marks BOTH original AND duplicate ----
+function recomputeDups() {
+  // first pass: clear all
+  racks.forEach(r => r.bins.forEach(b => b.items.forEach(it => { it.isDup = false; })));
+  // second pass: collect first occurrence per ref
+  const firstSeen = {}; // ref → item object of first occurrence
+  racks.forEach(r => r.bins.forEach(b => b.items.forEach(it => {
+    if (!it.ref) return;
+    if (firstSeen[it.ref]) {
+      it.isDup = true;
+      firstSeen[it.ref].isDup = true; // mark original too
+    } else {
+      firstSeen[it.ref] = it;
     }
+  })));
+}
 
-    input.value = '';
-    input.focus();
-    recomputeDups();
-    render();
+// ---- Place item ----
+function placeItem() {
+  const input = document.getElementById('refInput');
+  const val   = input.value.trim();
+  const warn  = document.getElementById('dupWarn');
+  warn.classList.remove('visible');
+  if (!val) { triggerShake(input); return; }
+
+  // Check for existing occurrence (for the warning message)
+  let dupSeq = null;
+  outer:
+  for (let ri = 0; ri < racks.length; ri++)
+    for (let bi = 0; bi < racks[ri].bins.length; bi++)
+      for (let ii = 0; ii < racks[ri].bins[bi].items.length; ii++)
+        if (racks[ri].bins[bi].items[ii].ref === val) {
+          dupSeq = seqCode(ri, racks[ri].bins[bi], ii); break outer;
+        }
+
+  racks[activeRack].bins[activeBin].items.push(makeItem(val));
+
+  if (dupSeq) {
+    warn.textContent = `⚠ Duplicate: "${val}" already at ${dupSeq}`;
+    warn.classList.add('visible');
   }
 
-  // Close current bin, open a new empty one on the same rack
-  function addEmptyBin() {
-    const rack = racks[activeRack];
-    rack.bins.push(makeBin());
-    activeBin = rack.bins.length - 1;
-    document.getElementById('dupWarn').classList.remove('visible');
-    recomputeDups();
-    render();
-    document.getElementById('refInput').focus();
+  input.value = '';
+  input.focus();
+  recomputeDups();
+  render();
+}
+
+// ---- Next Bin (append after active) ----
+function nextBin() {
+  const rack = racks[activeRack];
+  const newBin = makeBin(rack.bins.length);
+  rack.bins.push(newBin);
+  activeBin = rack.bins.length - 1;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+  document.getElementById('refInput').focus();
+}
+
+// ---- Insert bin after a specific bin index ----
+function insertBinAfter(bi) {
+  const rack = racks[activeRack];
+  // Letter for new bin = letter after the bin at bi, using current total
+  const newBin = makeBin(rack.bins.length); // letter will be sequential
+  rack.bins.splice(bi + 1, 0, newBin);
+  // Reassign letters to all bins to keep them sequential
+  rack.bins.forEach((b, i) => b.letter = binLetter(i));
+  activeBin = bi + 1;
+  render();
+  document.getElementById('refInput').focus();
+}
+
+// ---- Next Rack ----
+function nextRack() {
+  const currentName = racks[activeRack].name;
+  const newName = numericIncrement(currentName);
+  racks.push(makeRack(newName));
+  activeRack = racks.length - 1;
+  activeBin  = 0;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+  document.getElementById('refInput').focus();
+}
+
+function switchRack(i) {
+  editingCell = null; openNotes = null;
+  activeRack = i;
+  activeBin  = racks[i].bins.length - 1;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+}
+
+// ---- Remove / clear ----
+function removeItem(bi, ii) {
+  racks[activeRack].bins[bi].items.splice(ii, 1);
+  document.getElementById('dupWarn').classList.remove('visible');
+  recomputeDups(); render();
+}
+
+function removeLastBin() {
+  const rack = racks[activeRack];
+  if (rack.bins.length <= 1) { rack.bins[0].items = []; activeBin = 0; }
+  else { rack.bins.pop(); activeBin = rack.bins.length - 1; }
+  rack.bins.forEach((b, i) => b.letter = binLetter(i));
+  recomputeDups(); render();
+}
+
+function clearActiveRack() {
+  racks[activeRack].bins = [makeBin(0)];
+  activeBin = 0;
+  recomputeDups(); render();
+}
+
+// ---- Editing ----
+function startEdit(bi, ii, field) {
+  editingCell = { bi, ii, field };
+  renderRows();
+  const el = document.getElementById('inline-edit-input');
+  if (el) { el.focus(); el.select(); }
+}
+
+function commitEdit(bi, ii, field) {
+  const el = document.getElementById('inline-edit-input');
+  if (!el) { editingCell = null; return; }
+  const val = el.value.trim();
+  const item = racks[activeRack].bins[bi].items[ii];
+  if (field === 'ref' && val) item.ref = val;
+  if (field === 'seq') item.seqOverride = val || null;
+  editingCell = null;
+  recomputeDups(); render();
+}
+
+function cancelEdit() { editingCell = null; renderRows(); }
+
+// ---- Bin letter edit ----
+function commitBinLetter(bi, val) {
+  if (val.trim()) racks[activeRack].bins[bi].letter = val.trim().toUpperCase();
+  renderRows();
+}
+
+// ---- Notes toggle ----
+function toggleNotes(bi, ii) {
+  if (openNotes && openNotes.bi === bi && openNotes.ii === ii) {
+    openNotes = null;
+  } else {
+    openNotes = { bi, ii };
+  }
+  renderRows();
+  if (openNotes) {
+    const el = document.getElementById('note-input');
+    if (el) el.focus();
+  }
+}
+
+function saveNote(bi, ii) {
+  const el = document.getElementById('note-input');
+  if (el) racks[activeRack].bins[bi].items[ii].note = el.value;
+  openNotes = null;
+  renderRows();
+}
+
+// ---- Render ----
+function renderRows() {
+  const rack = racks[activeRack];
+  const container = document.getElementById('binRows');
+  if (!rack || rack.bins.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📦</div><p>No bins — tap <b>Place</b> to start.</p></div>`;
+    return;
   }
 
-  // Start a fresh rack (bin resets to A)
-  function nextRack() {
-    const nextName = rackLabel(racks.length);
-    racks.push(makeRack(nextName));
-    activeRack = racks.length - 1;
-    activeBin  = 0;
-    document.getElementById('dupWarn').classList.remove('visible');
-    recomputeDups();
-    render();
-    document.getElementById('refInput').focus();
-  }
+  let html = '';
+  rack.bins.forEach((bin, bi) => {
+    const isActive = bi === activeBin;
+    html += `<div class="bin-group" id="bingroup-${bi}">`;
 
-  function switchRack(i) {
-    editingCell = null;
-    activeRack = i;
-    activeBin  = racks[i].bins.length - 1;
-    document.getElementById('dupWarn').classList.remove('visible');
-    render();
-  }
+    // Bin header with editable letter
+    html += `<div class="bin-header">
+      <span class="bin-header-letter">BIN</span>
+      <input class="bin-letter-edit" value="${bin.letter}"
+        onchange="commitBinLetter(${bi}, this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        title="Edit bin letter">
+      ${isActive ? '<span style="font-size:10px;color:var(--accent-dk);font-weight:700;margin-left:4px">▸ ACTIVE</span>' : ''}
+      <button class="btn btn-secondary bin-header-btn add-item-here" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="activeBin=${bi};document.getElementById('refInput').focus()">Set Active</button>
+    </div>`;
 
-  // Remove a single item (× button)
-  function removeItem(binIdx, itemIdx) {
-    racks[activeRack].bins[binIdx].items.splice(itemIdx, 1);
-    document.getElementById('dupWarn').classList.remove('visible');
-    recomputeDups();
-    render();
-  }
+    if (bin.items.length === 0) {
+      html += `<div class="bin-row">
+        <span class="bin-seq" style="color:#bcc5cf">'${rack.name}${bin.letter}01</span>
+        <span class="bin-name-cell">${bin.letter}</span>
+        <span class="ref-num empty">${isActive ? '▸ type item' : '— empty —'}</span>
+        <span class="notes-cell"></span>
+        <span></span>
+      </div>`;
+    } else {
+      bin.items.forEach((it, ii) => {
+        const isEditRef = editingCell?.bi===bi && editingCell?.ii===ii && editingCell?.field==='ref';
+        const isEditSeq = editingCell?.bi===bi && editingCell?.ii===ii && editingCell?.field==='seq';
+        const isNoteOpen = openNotes?.bi===bi && openNotes?.ii===ii;
+        const dupClass = it.isDup ? ' is-dup' : '';
+        const editClass = (isEditRef||isEditSeq) ? ' editing' : '';
 
-  // Remove the last bin of the active rack (undo)
-  function removeLastBin() {
-    const rack = racks[activeRack];
-    if (rack.bins.length <= 1) { rack.bins[0].items = []; activeBin = 0; }
-    else                       { rack.bins.pop(); activeBin = rack.bins.length - 1; }
-    document.getElementById('dupWarn').classList.remove('visible');
-    recomputeDups();
-    render();
-  }
+        html += `<div class="bin-row${dupClass}${editClass}">`;
 
-  function clearActiveRack() {
-    racks[activeRack].bins = [ makeBin() ];
-    activeBin  = 0;
-    document.getElementById('dupWarn').classList.remove('visible');
-    recomputeDups();
-    render();
-  }
+        // Sequence cell
+        if (isEditSeq) {
+          html += `<input id="inline-edit-input" class="bin-seq-edit" value="${(it.seqOverride||seqCode(activeRack,bin,ii)).replace(/^'/,'')}"
+            autocapitalize="characters" autocorrect="off"
+            onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii},'seq')}else if(event.key==='Escape'){cancelEdit()}"
+            onblur="commitEdit(${bi},${ii},'seq')">`;
+        } else {
+          const displaySeq = seqCode(activeRack, bin, ii);
+          html += `<span class="bin-seq" title="Click to edit sequence" style="cursor:pointer" onclick="startEdit(${bi},${ii},'seq')">${displaySeq}</span>`;
+        }
 
-  // ---- Inline edit ----
-  // editingCell tracks which item is currently being edited: { bi, ii } or null
-  let editingCell = null;
+        // Bin letter cell
+        html += `<span class="bin-name-cell">${bin.letter}</span>`;
 
-  function startEdit(bi, ii) {
-    editingCell = { bi, ii };
-    renderRows();
-    // Focus the input after render
-    const input = document.getElementById('inline-edit-input');
-    if (input) { input.focus(); input.select(); }
-  }
+        // Ref cell
+        if (isEditRef) {
+          html += `<input id="inline-edit-input" class="inline-edit" value="${it.ref.replace(/"/g,'&quot;')}"
+            autocapitalize="characters" autocorrect="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii},'ref')}else if(event.key==='Escape'){cancelEdit()}"
+            onblur="commitEdit(${bi},${ii},'ref')">`;
+        } else {
+          html += `<span class="ref-num">${it.ref}${it.isDup?'<span class="dup-tag visible">DUP</span>':''}</span>`;
+        }
 
-  function commitEdit(bi, ii) {
-    const input = document.getElementById('inline-edit-input');
-    if (!input) return;
-    const val = input.value.trim();
-    if (val) {
-      racks[activeRack].bins[bi].items[ii].ref = val;
-    }
-    editingCell = null;
-    recomputeDups();
-    render();
-  }
+        // Notes cell
+        html += `<span class="notes-cell" title="${it.note||''}">${it.note||''}</span>`;
 
-  function cancelEdit() {
-    editingCell = null;
-    renderRows();
-  }
+        // Actions
+        html += `<div class="row-actions">
+          <button class="icon-btn note-btn${it.note?' has-note':''}" onclick="toggleNotes(${bi},${ii})" title="Notes">📝</button>
+          ${(!isEditRef&&!isEditSeq)?`<button class="icon-btn" onclick="startEdit(${bi},${ii},'ref')" title="Edit ref">✎</button>`:''}
+          ${(isEditRef||isEditSeq)?`<button class="icon-btn" style="color:var(--accent-dk)" onclick="commitEdit(${bi},${ii},'${editingCell.field}')" title="Save">✓</button>`:''}
+          <button class="icon-btn del" onclick="removeItem(${bi},${ii})" title="Remove">×</button>
+        </div>`;
 
-  // ---- Render ----
-  function renderRows() {
-    const rack = racks[activeRack];
-    const container = document.getElementById('binRows');
+        html += `</div>`; // bin-row
 
-    // Flatten all bins + items into display rows
-    let rows = '';
-    rack.bins.forEach((bin, bi) => {
-      const isActiveBin = bi === activeBin;
-      if (bin.items.length === 0) {
-        // Empty bin — show one placeholder row
-        rows += `
-          <div class="bin-row${isActiveBin ? ' next-target' : ''}">
-            <span class="bin-seq">${seqCode(activeRack, bi, 0)}</span>
-            <span class="bin-name">${binLetter(bi)}</span>
-            <span class="ref-num empty">${isActiveBin ? '▸ type next item' : '— empty —'}</span>
-            <span></span>
+        // Notes dropdown row
+        if (isNoteOpen) {
+          html += `<div class="notes-row open" style="background:#fafbfc;border-bottom:1px solid var(--rule);padding:8px 14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--mid);margin-bottom:5px">Note for ${seqCode(activeRack,bin,ii)}</div>
+            <textarea id="note-input" rows="2" placeholder="Add a note…"
+              style="width:100%;font-family:var(--sans);font-size:13px;padding:8px;border:1.5px solid var(--rule);border-radius:4px;resize:vertical"
+              onkeydown="if(event.key==='Enter'&&event.metaKey)saveNote(${bi},${ii})"
+            >${it.note||''}</textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveNote(${bi},${ii})">Save Note</button>
+              <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px" onclick="openNotes=null;renderRows()">Cancel</button>
+            </div>
           </div>`;
+        }
+      });
+    }
+
+    html += `</div>`; // bin-group
+
+    // "Insert bin after this one" row
+    html += `<div class="add-bin-row">
+      <button onclick="insertBinAfter(${bi})">+ Insert bin after ${bin.letter}</button>
+      <span>↑ adds new bin here</span>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function render() {
+  const rack = racks[activeRack];
+  const name = rack.name;
+
+  document.getElementById('rackBadge').textContent   = 'RACK ' + name.toUpperCase();
+  document.getElementById('rackNameInput').value      = name;
+
+  const isConsign = rack.isConsignment;
+  document.getElementById('consignBtn').classList.toggle('active', isConsign);
+  document.getElementById('consignBadge').style.display = isConsign ? '' : 'none';
+
+  // Tabs
+  const tabs = document.getElementById('rackTabs');
+  tabs.innerHTML = racks.map((r, i) => {
+    const cnt = r.bins.reduce((s,b)=>s+b.items.length,0);
+    const cls = [i===activeRack?'active':'', r.isConsignment?'consign-tab':''].filter(Boolean).join(' ');
+    return `<div class="rack-tab ${cls}" onclick="switchRack(${i})">
+      <span class="tab-name">${r.name.toUpperCase()}${r.isConsignment?' [C]':''}</span><span class="count">${cnt}</span>
+    </div>`;
+  }).join('') + `<button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;border-radius:4px" onclick="nextRack()">+ Rack</button>`;
+
+  // Stats
+  const itemCount = rack.bins.reduce((s,b)=>s+b.items.length,0);
+  const dupCount  = rack.bins.reduce((s,b)=>s+b.items.filter(it=>it.isDup).length,0);
+  document.getElementById('statBins').textContent  = rack.bins.length;
+  document.getElementById('statItems').textContent = itemCount;
+  document.getElementById('statDups').textContent  = dupCount;
+
+  const total = racks.reduce((s,r)=>s+r.bins.reduce((ss,b)=>ss+b.items.length,0),0);
+  document.getElementById('exportBtn').disabled = total === 0;
+
+  renderRows();
+}
+
+// ---- Toast ----
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.className=''; }, 2500);
+}
+
+// ---- Save / Load ----
+function saveProgress() {
+  const data = JSON.stringify({ racks, activeRack, activeBin }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='BinSequencer_Save.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Progress saved');
+}
+
+function loadProgress() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const saved = JSON.parse(ev.target.result);
+        if (!saved.racks || !Array.isArray(saved.racks)) throw 0;
+        racks = saved.racks; activeRack = saved.activeRack??0; activeBin = saved.activeBin??0;
+        // Backfill any missing fields for older saves
+        racks.forEach(r => {
+          if (r.isConsignment===undefined) r.isConsignment=false;
+          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; }); });
+        });
+        recomputeDups(); render();
+        showToast('✓ Progress loaded');
+      } catch { showToast('⚠ Could not read save file', 'error'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ---- CSV Export ----
+function exportCSV() {
+  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes']];
+  racks.forEach((rack,ri) => {
+    rack.bins.forEach(bin => {
+      if (bin.items.length === 0) {
+        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '']);
       } else {
-        bin.items.forEach((it, ii) => {
-          const isEditing = editingCell && editingCell.bi === bi && editingCell.ii === ii;
-          if (isEditing) {
-            rows += `
-              <div class="bin-row editing">
-                <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
-                <span class="bin-name">${binLetter(bi)}</span>
-                <input id="inline-edit-input" class="inline-edit" value="${it.ref.replace(/"/g,'&quot;')}"
-                  autocapitalize="characters" autocorrect="off" spellcheck="false"
-                  onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii})}else if(event.key==='Escape'){cancelEdit()}"
-                  onblur="commitEdit(${bi},${ii})">
-                <div class="row-actions">
-                  <button class="edit-btn" style="color:var(--accent-dk)" onclick="commitEdit(${bi},${ii})" title="Save">✓</button>
-                </div>
-              </div>`;
-          } else {
-            rows += `
-              <div class="bin-row${it.isDup ? ' is-dup' : ''}">
-                <span class="bin-seq">${seqCode(activeRack, bi, ii)}</span>
-                <span class="bin-name">${binLetter(bi)}</span>
-                <span class="ref-num">${it.ref}${it.isDup ? '<span class="dup-tag visible">DUP</span>' : ''}</span>
-                <div class="row-actions">
-                  <button class="edit-btn" onclick="startEdit(${bi},${ii})" title="Edit">✎</button>
-                  <button class="del-btn"  onclick="removeItem(${bi},${ii})" title="Remove">×</button>
-                </div>
-              </div>`;
-          }
+        bin.items.forEach((it,ii) => {
+          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'' ]);
         });
       }
     });
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='TTJ_BinSequence.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Export downloaded');
+}
 
-    container.innerHTML = rows || `<div class="empty-state"><div class="icon">📦</div>
-      <p>No items yet — type a reference number and tap <b>Place</b>.</p></div>`;
-  }
+function triggerShake(el) {
+  el.classList.remove('shake'); void el.offsetWidth;
+  el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),400);
+}
 
-  function render() {
-    const name = racks[activeRack].name;
-    document.getElementById('rackBadge').textContent   = 'RACK ' + name.toUpperCase();
-    document.getElementById('rackNameInput').value      = name;
-
-    // Tabs
-    const tabs = document.getElementById('rackTabs');
-    tabs.innerHTML = racks.map((r, i) => {
-      const itemCount = r.bins.reduce((s, b) => s + b.items.length, 0);
-      return `<div class="rack-tab${i === activeRack ? ' active' : ''}" onclick="switchRack(${i})">
-        <span class="tab-name">${r.name.toUpperCase()}</span><span class="count">${itemCount}</span>
-      </div>`;
-    }).join('') +
-      `<button class="btn btn-secondary" style="border-radius:4px;padding:6px 12px;font-size:12px" onclick="nextRack()">+ Rack</button>`;
-
-    // Stats
-    const rack      = racks[activeRack];
-    const itemCount = rack.bins.reduce((s, b) => s + b.items.length, 0);
-    const dupCount  = rack.bins.reduce((s, b) => s + b.items.filter(it => it.isDup).length, 0);
-    document.getElementById('statBins').textContent   = rack.bins.length;
-    document.getElementById('statFilled').textContent = itemCount;
-    document.getElementById('statDups').textContent   = dupCount;
-
-    const totalItems = racks.reduce((s, r) => s + r.bins.reduce((ss, b) => ss + b.items.length, 0), 0);
-    document.getElementById('exportBtn').disabled = totalItems === 0;
-
-    renderRows();
-  }
-
-  // ---- Toast ----
-  function showToast(msg, type = 'success') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'show ' + type;
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.className = ''; }, 2500);
-  }
-
-  // ---- Save progress (downloads a .json file) ----
-  function saveProgress() {
-    const data = JSON.stringify({ racks, activeRack, activeBin }, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'BinSequencer_Save.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('✓ Progress saved');
-  }
-
-  // ---- Load progress (reads a previously saved .json file) ----
-  function loadProgress() {
-    const input    = document.createElement('input');
-    input.type     = 'file';
-    input.accept   = '.json';
-    input.onchange = e => {
-      const file   = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          const saved = JSON.parse(ev.target.result);
-          if (!saved.racks || !Array.isArray(saved.racks)) throw new Error('Invalid file');
-          racks      = saved.racks;
-          activeRack = saved.activeRack ?? 0;
-          activeBin  = saved.activeBin  ?? 0;
-          recomputeDups();
-          render();
-          showToast('✓ Progress loaded');
-        } catch {
-          showToast('⚠ Could not read save file', 'error');
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
-  }
-
-  // ---- Export to CSV (opens directly in Excel) ----
-  function exportCSV() {
-    const rows = [['Bin Sequence', 'Reference Number', 'Duplicate?']];
-
-    racks.forEach((rack, ri) => {
-      rack.bins.forEach((bin, bi) => {
-        if (bin.items.length === 0) {
-          rows.push([ seqCode(ri, bi, 0), '', '' ]);
-        } else {
-          bin.items.forEach((it, ii) => {
-            rows.push([ seqCode(ri, bi, ii), it.ref, it.isDup ? 'DUPLICATE' : '' ]);
-          });
-        }
-      });
-    });
-
-    const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'Deloitte_BinSequence.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('✓ Export downloaded');
-  }
-
-  function triggerShake(el) {
-    el.classList.remove('shake');
-    void el.offsetWidth;
-    el.classList.add('shake');
-    setTimeout(() => el.classList.remove('shake'), 400);
-  }
-
-  init();
+init();
 </script>
-
 </body>
 </html>
