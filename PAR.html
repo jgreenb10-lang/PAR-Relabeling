@@ -207,48 +207,24 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 
 <header>
   <div class="logo-wrap">
-    <!-- Pure CSS logo mark — no SVG paths -->
-    <div style="
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      width:52px;
-      height:44px;
-      background:linear-gradient(135deg,#00b4a6 0%,#007d78 100%);
-      border-radius:10px;
-      box-shadow:0 2px 8px rgba(0,180,166,0.35);
-      flex-shrink:0;
-    ">
-      <span style="
-        font-family:'Arial Black','Arial',sans-serif;
-        font-weight:900;
-        font-size:18px;
-        color:#fff;
-        letter-spacing:1px;
-        line-height:1;
-        user-select:none;
-      ">TTJ</span>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:3px;margin-left:10px">
-      <span style="
-        font-family:'Arial Black','Arial',sans-serif;
-        font-size:22px;
-        font-weight:900;
-        color:#fff;
-        letter-spacing:0.1em;
-        line-height:1;
-      ">TTJ</span>
-      <span style="
-        font-family:'Segoe UI',system-ui,sans-serif;
-        font-size:9px;
-        font-weight:700;
-        color:#00b4a6;
-        letter-spacing:0.2em;
-        text-transform:uppercase;
-      ">Bin Sequencer</span>
-    </div>
+    <svg width="120" height="58" viewBox="0 0 120 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Dark card -->
+      <rect width="120" height="58" rx="11" fill="#0d1821"/>
+      <!-- Teal top accent bar -->
+      <rect x="0" y="0" width="120" height="4.5" rx="2.25" fill="#00b4a6"/>
+      <!-- TTJ -->
+      <text x="60" y="38" text-anchor="middle"
+        font-family="'Arial Black','Arial',sans-serif"
+        font-weight="900" font-size="30" letter-spacing="3"
+        fill="white">TTJ</text>
+      <!-- CONSULTING -->
+      <text x="60" y="52" text-anchor="middle"
+        font-family="'Segoe UI','Arial',sans-serif"
+        font-weight="700" font-size="8.5" letter-spacing="3.5"
+        fill="#00b4a6">CONSULTING</text>
+    </svg>
   </div>
-  <div style="width:1px;height:28px;background:#2a3344;margin:0 4px"></div>
+  <div style="width:1px;height:28px;background:#2a3344;margin:0 12px"></div>
   <div class="sep"></div>
   <div class="rack-badge" id="rackBadge">RACK 01</div>
 </header>
