@@ -53,19 +53,17 @@ input[type="text"], input[type="number"], textarea {
 input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
 
 .add-section { padding: 16px 20px; border-bottom: 1px solid var(--rule); background: var(--surface); position: sticky; top: 0; z-index: 20; }
-.entry-row { display: flex; gap: 8px; }
-#refInput { flex: 1; font-size: 16px; font-family: var(--mono); padding: 11px 12px; border: 2px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.entry-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#refInput { flex: 1 1 100%; font-size: 16px; font-family: var(--mono); padding: 11px 12px; border: 2px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
 #refInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
 #refInput.shake { animation: shake 0.3s ease; border-color: var(--warn); background: var(--warn-dim); }
+.entry-row .btn-primary { flex: 1 1 100%; }
 @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
 .dup-warning { display: none; background: var(--warn-dim); border: 1.5px solid #f5b97e; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 8px; }
 .dup-warning.visible { display: block; }
 
-.top-par-row { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); }
-.top-par-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mid); display: block; margin-bottom: 6px; }
-.top-par-fields { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.top-par-fields label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
+.entry-par-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mid); align-self: center; }
 
 .btn { padding: 10px 14px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.08s; white-space: nowrap; }
 .btn:active { transform: scale(0.97); }
@@ -259,24 +257,22 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
         <input type="text" id="refInput" placeholder="Reference number…"
           autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
           onkeydown="if(event.key==='Enter') placeItem()">
+        <label class="entry-par-lbl">Min</label>
+        <input class="par-input" id="topParMin" type="number" min="0" placeholder="—"
+          title="Optional par minimum for active bin"
+          onchange="commitParLevel(activeBin,'parMin',this.value)">
+        <label class="entry-par-lbl">Max</label>
+        <input class="par-input" id="topParMax" type="number" min="0" placeholder="—"
+          title="Optional par maximum for active bin"
+          onchange="commitParLevel(activeBin,'parMax',this.value)">
+        <label class="entry-par-lbl">UOM</label>
+        <input class="uom-input" id="topParUom" type="text" placeholder="—" maxlength="10"
+          autocapitalize="characters" autocorrect="off" spellcheck="false"
+          title="Optional unit of measure for active bin"
+          onchange="commitUom(activeBin, this.value)">
         <button class="btn btn-primary" onclick="placeItem()">Place</button>
       </div>
       <div class="dup-warning" id="dupWarn"></div>
-      <div class="top-par-row">
-        <span class="top-par-lbl">Par for active bin (optional):</span>
-        <div class="top-par-fields">
-          <label>Min</label>
-          <input class="par-input" id="topParMin" type="number" min="0" placeholder="—"
-            onchange="commitParLevel(activeBin,'parMin',this.value)">
-          <label>Max</label>
-          <input class="par-input" id="topParMax" type="number" min="0" placeholder="—"
-            onchange="commitParLevel(activeBin,'parMax',this.value)">
-          <label>UOM</label>
-          <input class="uom-input" id="topParUom" type="text" placeholder="—" maxlength="10"
-            autocapitalize="characters" autocorrect="off" spellcheck="false"
-            onchange="commitUom(activeBin, this.value)">
-        </div>
-      </div>
     </div>
 
     <div class="panel-scroll">
