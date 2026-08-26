@@ -1,7 +1,871 @@
-<!doctype html>
-<meta charset="utf-8">
-<title>PAR Relabeling</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>html,body{height:100%;margin:0}iframe{border:0;width:100%;height:100vh}</style>
-<iframe src="PAR.html" title="PAR Relabeling"></iframe>
-<p style="text-align:center;margin-top:8px">If the page does not load automatically, <a href="PAR.html">click here to open PAR.html</a>.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>TTJ Bin Sequencer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #1a1f2e;
+  --steel: #1a1f2e;
+  --header-bg: #12161f;
+  --mid: #6b7280;
+  --rule: #dde2e8;
+  --bg: #f0f3f7;
+  --surface: #fff;
+  --accent: #00b4a6;
+  --accent-dk: #008f84;
+  --accent-dim: #e0f7f5;
+  --warn: #e03e2d;
+  --warn-dim: #fff0ee;
+  --consign: #e67e22;
+  --consign-dim: #fef3e2;
+  --mono: 'Courier New', Courier, monospace;
+  --sans: 'Segoe UI', system-ui, sans-serif;
+}
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+header { background: var(--header-bg); color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--accent); }
+header .logo-wrap { display: flex; align-items: center; gap: 10px; }
+header h1 { font-size: 13px; font-weight: 500; color: #7a8a9a; }
+header .sep { flex: 1; }
+header .rack-badge { font-family: var(--mono); font-size: 12px; background: var(--accent); color: #fff; font-weight: 700; padding: 4px 10px; border-radius: 3px; letter-spacing: 0.06em; }
+
+.workspace { display: flex; flex: 1; }
+
+/* LEFT PANEL */
+.panel-input { width: 340px; min-width: 280px; background: var(--surface); border-right: 1px solid var(--rule); padding: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.panel-scroll { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+.section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mid); margin-bottom: 6px; }
+.divider { height: 1px; background: var(--rule); }
+
+input[type="text"], input[type="number"], textarea {
+  font-family: var(--mono); font-size: 13px; padding: 8px 10px;
+  border: 1.5px solid var(--rule); border-radius: 4px;
+  background: var(--bg); color: var(--ink); width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
+
+.add-section { padding: 16px 20px; border-bottom: 1px solid var(--rule); background: var(--surface); position: sticky; top: 0; z-index: 20; }
+.entry-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#refInput { flex: 1 1 100%; font-size: 16px; font-family: var(--mono); padding: 11px 12px; border: 2px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+#refInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
+#refInput.shake { animation: shake 0.3s ease; border-color: var(--warn); background: var(--warn-dim); }
+.entry-row .btn-primary { flex: 1 1 100%; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+.dup-warning { display: none; background: var(--warn-dim); border: 1.5px solid #f5b97e; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 8px; }
+.dup-warning.visible { display: block; }
+
+.entry-par-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mid); align-self: center; }
+
+.btn { padding: 10px 14px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.08s; white-space: nowrap; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #111; font-weight: 700; }
+.btn-primary:hover { background: var(--accent-dk); color: #fff; }
+.btn-secondary { background: var(--bg); color: var(--mid); border: 1.5px solid var(--rule); }
+.btn-secondary:hover { background: var(--rule); }
+.btn-export { background: var(--steel); color: #fff; width: 100%; padding: 12px; font-size: 13px; }
+.btn-export:hover { background: #000; }
+.btn-export:disabled { background: var(--rule); color: var(--mid); cursor: not-allowed; }
+.btn-save { background: var(--accent-dim); color: var(--accent-dk); border: 1.5px solid #b5d97a; font-weight: 700; }
+.btn-save:hover { background: #d8f0a0; }
+.btn-consign { background: var(--consign-dim); color: var(--consign); border: 1.5px solid #c4b5fd; font-weight: 700; }
+.btn-consign:hover { background: #ede9fe; }
+.btn-consign.active { background: var(--consign); color: #fff; border-color: var(--consign); }
+
+.nav-cluster { display: flex; flex-direction: column; gap: 7px; }
+.nav-btn { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--bg); border: 1.5px solid var(--rule); color: var(--ink); padding: 10px 12px; border-radius: 4px; }
+.nav-btn:hover { border-color: var(--accent-dk); background: var(--accent-dim); }
+.nav-btn .icon { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent-dk); width: 20px; text-align: center; flex-shrink: 0; }
+.nav-btn .txt { display: flex; flex-direction: column; gap: 1px; }
+.nav-btn .txt b { font-size: 12.5px; font-weight: 700; }
+.nav-btn .txt small { font-size: 10.5px; color: var(--mid); }
+
+.stats-row { display: flex; gap: 8px; }
+.stat-box { flex: 1; background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 6px; text-align: center; }
+.stat-box .num { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1; }
+.stat-box .lbl { font-size: 9px; color: var(--mid); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.stat-box.warn-stat .num { color: var(--warn); }
+
+.footer-btns { padding: 16px 20px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }
+
+/* RIGHT PANEL */
+.panel-rack { flex: 1; padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+
+.rack-tabs { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.rack-tab { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 4px 4px 0 0; border: 1px solid var(--rule); border-bottom: none; background: var(--bg); color: var(--mid); cursor: pointer; letter-spacing: 0.05em; transition: background 0.12s; }
+.rack-tab:hover { background: var(--accent-dim); }
+.rack-tab.active { background: var(--steel); color: #fff; }
+.rack-tab.consign-tab { border-top: 2px solid var(--consign); }
+.rack-tab.consign-tab.active { background: var(--consign); }
+.rack-tab .count { opacity: 0.6; font-size: 10px; margin-left: 4px; }
+
+.rack-container { background: var(--surface); border: 2px solid var(--steel); border-radius: 0 6px 6px 6px; overflow: hidden; }
+
+/* Top bar of rack container: Rack ID + Consignment toggle */
+.rack-meta-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--accent-dim); border-bottom: 1px solid #d6eab2; }
+.rack-meta-bar label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-dk); white-space: nowrap; }
+.rack-meta-bar input { font-family: var(--mono); font-size: 15px; font-weight: 700; background: #fff; border: 1.5px solid #b5d97a; border-radius: 4px; padding: 6px 10px; flex: 1; letter-spacing: 0.06em; text-transform: uppercase; max-width: 120px; }
+.rack-meta-bar input:focus { outline: none; border-color: var(--accent-dk); }
+.rack-meta-bar .sep { flex: 1; }
+
+.rack-col-header { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; background: var(--steel); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; gap: 10px; }
+
+/* Bin group */
+.bin-group { border-bottom: 2px solid #eaf0f5; }
+.bin-group:last-child { border-bottom: none; }
+
+.bin-header { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: #f8fafb; border-bottom: 1px solid var(--rule); }
+.bin-header-letter { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--mid); letter-spacing: 0.08em; }
+.bin-letter-edit { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 7px; width: 72px; color: var(--ink); text-transform: uppercase; }
+.bin-letter-edit:focus { outline: none; border-color: var(--accent-dk); }
+.bin-header .add-item-here { margin-left: auto; font-size: 11px; padding: 4px 10px; }
+.bin-header .add-bin-after { font-size: 11px; padding: 4px 10px; }
+
+.par-group { display: flex; align-items: center; gap: 5px; }
+.par-group label { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
+.par-input { font-family: var(--mono); font-size: 11px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 5px; width: 42px; color: var(--ink); text-align: center; }
+.par-input:focus { outline: none; border-color: var(--accent-dk); }
+.uom-input { font-family: var(--mono); font-size: 11px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 6px; width: 60px; color: var(--ink); text-transform: uppercase; }
+.uom-input:focus { outline: none; border-color: var(--accent-dk); }
+
+.item-par-tag { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--accent-dk); background: var(--accent-dim); border: 1px solid #b5d97a; border-radius: 3px; padding: 1px 5px; margin-left: 6px; letter-spacing: 0.03em; vertical-align: middle; }
+.par-btn.has-note { color: var(--accent-dk); }
+
+.bin-row { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f0f3f6; transition: background 0.1s; }
+.bin-row:last-child { border-bottom: none; }
+.bin-row:hover { background: #f7f9fb; }
+.bin-row.is-dup { background: var(--warn-dim); border-left: 4px solid var(--warn); padding-left: 10px; }
+.bin-row.is-dup:hover { background: #fdecd7; }
+.bin-row.editing { background: var(--accent-dim); }
+
+.bin-seq { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-dk); }
+.bin-seq-edit { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border: 2px solid var(--accent-dk); border-radius: 3px; padding: 3px 7px; width: 100%; text-transform: uppercase; color: var(--accent-dk); }
+.bin-seq-edit:focus { outline: none; }
+.bin-name-cell { font-family: var(--mono); font-size: 11px; color: var(--steel); font-weight: 600; }
+.ref-num { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.ref-num.empty { color: #bcc5cf; font-style: italic; font-size: 12px; font-family: var(--sans); }
+.notes-cell { font-size: 11px; color: var(--mid); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dup-tag { display: none; background: var(--warn); color: #fff; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 5px; border-radius: 3px; margin-left: 6px; }
+.dup-tag.visible { display: inline-block; }
+
+.row-actions { display: flex; gap: 2px; justify-content: flex-end; align-items: center; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 3px; color: #bcc5cf; transition: color 0.1s, background 0.1s; }
+.icon-btn:hover { color: var(--ink); background: var(--rule); }
+.icon-btn.del:hover { color: #c0392b; background: #fde0e0; }
+.icon-btn.note-btn.has-note { color: var(--accent-dk); }
+
+.inline-edit { font-family: var(--mono); font-size: 13px; color: var(--ink); background: #fff; border: 2px solid var(--accent-dk); border-radius: 4px; padding: 4px 8px; width: 100%; min-width: 0; }
+.inline-edit:focus { outline: none; }
+
+/* Notes dropdown */
+.notes-row { display: none; grid-column: 1 / -1; padding: 6px 14px 10px; }
+.notes-row.open { display: block; }
+.notes-row textarea { font-size: 13px; font-family: var(--sans); resize: vertical; min-height: 52px; padding: 8px; border-radius: 4px; }
+
+/* Add-bin-between button row */
+.add-bin-row { display: flex; align-items: center; gap: 8px; padding: 5px 14px; background: var(--bg); border-bottom: 1px solid var(--rule); }
+.add-bin-row button { font-size: 11px; padding: 4px 10px; color: var(--accent-dk); background: var(--accent-dim); border: 1px solid #b5d97a; border-radius: 3px; cursor: pointer; font-weight: 600; }
+.add-bin-row button:hover { background: #d8f0a0; }
+.add-bin-row span { font-size: 10px; color: var(--mid); }
+
+.empty-state { padding: 50px 0; text-align: center; color: #bcc5cf; }
+.empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; }
+
+/* Toast */
+#toast { position: fixed; bottom: max(20px,env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%) translateY(16px); background: var(--steel); color: #fff; padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-left: 4px solid var(--accent); }
+#toast.error { border-left: 4px solid var(--warn); }
+
+/* MOBILE */
+@media (max-width: 760px) {
+  html,body { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+  header { height: auto; min-height: 54px; padding: 10px 14px; padding-top: max(10px,env(safe-area-inset-top)); }
+  header .logo-wrap svg { width: 36px; height: 36px; }
+  header .logo-wrap span:first-child { font-size: 16px !important; }
+  header h1 { font-size: 12px; }
+  .workspace { flex-direction: column; }
+  .panel-input { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--rule); }
+  .panel-scroll { padding: 14px; gap: 14px; }
+  input[type="text"],input[type="number"],#refInput { font-size: 16px; padding: 12px; }
+  .btn { padding: 13px 14px; font-size: 14px; min-height: 46px; }
+  .panel-rack { padding: 14px; padding-bottom: max(24px,env(safe-area-inset-bottom)); }
+  .rack-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .rack-tabs::-webkit-scrollbar { display: none; }
+  .rack-tab { flex-shrink: 0; }
+  .rack-col-header,.bin-row { grid-template-columns: 90px 50px 1fr 80px; gap: 8px; padding: 10px 12px; }
+  .rack-col-header span:nth-child(4),.bin-row .notes-cell { display: none; }
+  .icon-btn { font-size: 18px; padding: 6px; }
+  .bin-header { padding: 6px 10px; flex-wrap: wrap; row-gap: 6px; }
+  .top-par-fields { row-gap: 6px; }
+  .bin-header .add-item-here { margin-left: auto; }
+}
+@media (max-width: 380px) {
+  header h1 { display: none; }
+  .rack-col-header,.bin-row { grid-template-columns: 80px 1fr 60px; gap: 6px; }
+  .rack-col-header span:nth-child(2),.bin-row .bin-name-cell { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <svg width="120" height="58" viewBox="0 0 120 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Dark card -->
+      <rect width="120" height="58" rx="11" fill="#0d1821"/>
+      <!-- Teal top accent bar -->
+      <rect x="0" y="0" width="120" height="4.5" rx="2.25" fill="#00b4a6"/>
+      <!-- TTJ -->
+      <text x="60" y="38" text-anchor="middle"
+        font-family="'Arial Black','Arial',sans-serif"
+        font-weight="900" font-size="30" letter-spacing="3"
+        fill="white">TTJ</text>
+      <!-- CONSULTING -->
+      <text x="60" y="52" text-anchor="middle"
+        font-family="'Segoe UI','Arial',sans-serif"
+        font-weight="700" font-size="8.5" letter-spacing="3.5"
+        fill="#00b4a6">CONSULTING</text>
+    </svg>
+  </div>
+  <div style="width:1px;height:28px;background:#2a3344;margin:0 12px"></div>
+  <div class="sep"></div>
+  <div class="rack-badge" id="rackBadge">RACK 01</div>
+</header>
+
+<div class="workspace">
+
+  <div class="panel-input">
+
+    <div class="add-section">
+      <div class="section-label">Add Item</div>
+      <div class="entry-row">
+        <input type="text" id="refInput" placeholder="Reference number…"
+          autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
+          onkeydown="if(event.key==='Enter') placeItem()">
+        <label class="entry-par-lbl">Min</label>
+        <input class="par-input" id="topParMin" type="number" min="0" placeholder="—"
+          title="Optional par minimum for this item">
+        <label class="entry-par-lbl">Max</label>
+        <input class="par-input" id="topParMax" type="number" min="0" placeholder="—"
+          title="Optional par maximum for this item">
+        <label class="entry-par-lbl">UOM</label>
+        <input class="uom-input" id="topParUom" type="text" placeholder="—" maxlength="10"
+          autocapitalize="characters" autocorrect="off" spellcheck="false"
+          title="Optional unit of measure for this item">
+        <button class="btn btn-primary" onclick="placeItem()">Place</button>
+      </div>
+      <div class="dup-warning" id="dupWarn"></div>
+    </div>
+
+    <div class="panel-scroll">
+
+      <div>
+        <div class="section-label">Navigation</div>
+        <div class="nav-cluster">
+          <button class="btn nav-btn" onclick="placeItem()">
+            <span class="icon">→</span>
+            <span class="txt"><b>Place Item</b><small>Add ref # to current bin (01A01→01A02)</small></span>
+          </button>
+          <button class="btn nav-btn" onclick="nextBin()">
+            <span class="icon">⬇</span>
+            <span class="txt"><b>Next Bin</b><small>Move to next bin (01A→01B01)</small></span>
+          </button>
+          <button class="btn nav-btn" onclick="nextRack()">
+            <span class="icon">⊞</span>
+            <span class="txt"><b>Next Rack</b><small>Start new rack (01→02A01)</small></span>
+          </button>
+          <button class="btn nav-btn btn-consign" id="consignBtn" onclick="toggleConsignment()">
+            <span class="icon">C</span>
+            <span class="txt"><b>Consignment</b><small>Mark this rack as consignment</small></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div>
+        <div class="section-label">Active Rack</div>
+        <div class="stats-row">
+          <div class="stat-box"><div class="num" id="statBins">0</div><div class="lbl">Bins</div></div>
+          <div class="stat-box"><div class="num" id="statItems">0</div><div class="lbl">Items</div></div>
+          <div class="stat-box warn-stat"><div class="num" id="statDups">0</div><div class="lbl">Dups</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer-btns">
+      <button class="btn btn-export" id="exportBtn" onclick="exportCSV()" disabled>⬇ Export to Excel (All Racks)</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-save" style="flex:1" onclick="saveProgress()">💾 Save</button>
+        <button class="btn btn-save" style="flex:1" onclick="loadProgress()">📂 Load</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="flex:1" onclick="removeLastBin()">Remove Last Bin</button>
+        <button class="btn btn-secondary" style="flex:1" onclick="clearActiveRack()">Clear Rack</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel-rack">
+    <div class="rack-tabs" id="rackTabs"></div>
+    <div class="rack-container">
+      <div class="rack-meta-bar">
+        <label>Rack ID</label>
+        <input type="text" id="rackNameInput" maxlength="20"
+          autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="01"
+          oninput="renameActiveRack(this.value)">
+        <div class="sep"></div>
+        <span id="consignBadge" style="display:none;background:var(--consign);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:3px;letter-spacing:0.06em">CONSIGNMENT</span>
+      </div>
+      <div class="rack-col-header">
+        <span>Sequence</span><span>Bin</span><span>Reference #</span><span>Notes</span><span></span>
+      </div>
+      <div id="binRows"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/*
+ * Model:  racks[] → { name, isConsignment, bins[] }
+ *         bins[]  → { letter, items[] }
+ *         items[] → { ref, note, isDup, seqOverride, parMin, parMax, uom }
+ *
+ * Sequence: '{rackName}{binLetter}{itemIdx padded 2}'  e.g. '01A01
+ * seqOverride lets the user manually edit the displayed sequence code.
+ * parMin/parMax are optional par-level stocking targets for THIS SPECIFIC ITEM (null = not set).
+ * uom is an optional unit of measure for that item's par level (e.g. EA, CS, BOX; '' = not set).
+ * The Min/Max/UOM fields in the Add Item panel are captured onto each item at the moment it's placed.
+ */
+
+let racks      = [];
+let activeRack = 0;
+let activeBin  = 0;
+let editingCell = null;  // { bi, ii, field: 'ref'|'seq' }
+let openNotes   = null;  // { bi, ii }
+let openPar     = null;  // { bi, ii }
+
+// ---- Helpers ----
+function numericIncrement(name) {
+  // Try to parse the name as a number and increment it with same zero-padding
+  const m = name.match(/^(\d+)$/);
+  if (m) return String(parseInt(m[1]) + 1).padStart(m[1].length, '0');
+  // Try trailing number: "SHELF-3" → "SHELF-4"
+  const m2 = name.match(/^(.*?)(\d+)$/);
+  if (m2) return m2[1] + String(parseInt(m2[2]) + 1).padStart(m2[2].length, '0');
+  return String(racks.length + 1).padStart(2, '0');
+}
+
+function binLetter(i) {
+  let s = '', n = i + 1;
+  while (n > 0) { const r = (n-1)%26; s = String.fromCharCode(65+r)+s; n = Math.floor((n-1)/26); }
+  return s;
+}
+
+function rackName(i) { return racks[i]?.name ?? String(i+1).padStart(2,'0'); }
+
+function seqCode(rackIdx, bin, itemIdx) {
+  const it = bin.items[itemIdx];
+  if (it?.seqOverride) return it.seqOverride;
+  return `'${rackName(rackIdx)}${bin.letter || binLetter(racks[rackIdx]?.bins.indexOf(bin))}${String(itemIdx+1).padStart(2,'0')}`;
+}
+
+function makeRack(name) { return { name: name ?? '01', isConsignment: false, bins: [makeBin(0)] }; }
+function makeBin(idx)   { return { letter: binLetter(idx), items: [] }; }
+
+// ---- Par level helpers (per item) ----
+function readTopParInputs() {
+  const minEl = document.getElementById('topParMin');
+  const maxEl = document.getElementById('topParMax');
+  const uomEl = document.getElementById('topParUom');
+  const parseVal = v => { const t = (v||'').trim(); if (t==='') return null; const n = parseInt(t,10); return Number.isFinite(n) ? n : null; };
+  return {
+    parMin: parseVal(minEl?.value),
+    parMax: parseVal(maxEl?.value),
+    uom: (uomEl?.value || '').trim().toUpperCase()
+  };
+}
+
+function commitItemPar(bi, ii, field, val) {
+  const item = racks[activeRack].bins[bi].items[ii];
+  if (field === 'uom') {
+    item.uom = val.trim().toUpperCase();
+  } else {
+    const trimmed = val.trim();
+    item[field] = trimmed === '' ? null : (Number.isFinite(parseInt(trimmed,10)) ? parseInt(trimmed,10) : null);
+  }
+  renderRows();
+}
+
+function itemParTag(it) {
+  if (it.parMin == null && it.parMax == null && !it.uom) return '';
+  const range = (it.parMin != null || it.parMax != null) ? `${it.parMin ?? '–'}–${it.parMax ?? '–'}` : '';
+  const unit = it.uom ? (range ? ` ${it.uom}` : it.uom) : '';
+  return range || unit ? `${range}${unit}` : '';
+}
+function makeItem(ref)  { return { ref, note: '', isDup: false, seqOverride: null, parMin: null, parMax: null, uom: '' }; }
+
+function init() { racks = [makeRack('01')]; activeRack = 0; activeBin = 0; render(); }
+
+// ---- Rename rack ----
+function renameActiveRack(val) {
+  racks[activeRack].name = val.trim() || String(activeRack+1).padStart(2,'0');
+  document.getElementById('rackBadge').textContent = 'RACK ' + racks[activeRack].name.toUpperCase();
+  const tabs = document.getElementById('rackTabs').querySelectorAll('.tab-name');
+  if (tabs[activeRack]) tabs[activeRack].textContent = racks[activeRack].name.toUpperCase();
+  renderRows();
+}
+
+// ---- Consignment toggle ----
+function toggleConsignment() {
+  racks[activeRack].isConsignment = !racks[activeRack].isConsignment;
+  render();
+}
+
+// ---- Dup check: marks BOTH original AND duplicate ----
+function recomputeDups() {
+  // first pass: clear all
+  racks.forEach(r => r.bins.forEach(b => b.items.forEach(it => { it.isDup = false; })));
+  // second pass: collect first occurrence per ref
+  const firstSeen = {}; // ref → item object of first occurrence
+  racks.forEach(r => r.bins.forEach(b => b.items.forEach(it => {
+    if (!it.ref) return;
+    if (firstSeen[it.ref]) {
+      it.isDup = true;
+      firstSeen[it.ref].isDup = true; // mark original too
+    } else {
+      firstSeen[it.ref] = it;
+    }
+  })));
+}
+
+// ---- Place item ----
+function placeItem() {
+  const input = document.getElementById('refInput');
+  const val   = input.value.trim();
+  const warn  = document.getElementById('dupWarn');
+  warn.classList.remove('visible');
+  if (!val) { triggerShake(input); return; }
+
+  // Check for existing occurrence (for the warning message)
+  let dupSeq = null;
+  outer:
+  for (let ri = 0; ri < racks.length; ri++)
+    for (let bi = 0; bi < racks[ri].bins.length; bi++)
+      for (let ii = 0; ii < racks[ri].bins[bi].items.length; ii++)
+        if (racks[ri].bins[bi].items[ii].ref === val) {
+          dupSeq = seqCode(ri, racks[ri].bins[bi], ii); break outer;
+        }
+
+  const newItem = makeItem(val);
+  const par = readTopParInputs();
+  newItem.parMin = par.parMin;
+  newItem.parMax = par.parMax;
+  newItem.uom = par.uom;
+  racks[activeRack].bins[activeBin].items.push(newItem);
+
+  if (dupSeq) {
+    warn.textContent = `⚠ Duplicate: "${val}" already at ${dupSeq}`;
+    warn.classList.add('visible');
+  }
+
+  input.value = '';
+  input.focus();
+  recomputeDups();
+  render();
+}
+
+// ---- Next Bin (append after active) ----
+function nextBin() {
+  const rack = racks[activeRack];
+  const newBin = makeBin(rack.bins.length);
+  rack.bins.push(newBin);
+  activeBin = rack.bins.length - 1;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+  document.getElementById('refInput').focus();
+}
+
+// ---- Insert bin after a specific bin index ----
+function insertBinAfter(bi) {
+  const rack = racks[activeRack];
+  // Letter for new bin = letter after the bin at bi, using current total
+  const newBin = makeBin(rack.bins.length); // letter will be sequential
+  rack.bins.splice(bi + 1, 0, newBin);
+  // Reassign letters to all bins to keep them sequential
+  rack.bins.forEach((b, i) => b.letter = binLetter(i));
+  activeBin = bi + 1;
+  render();
+  document.getElementById('refInput').focus();
+}
+
+// ---- Next Rack ----
+function nextRack() {
+  const currentName = racks[activeRack].name;
+  const newName = numericIncrement(currentName);
+  racks.push(makeRack(newName));
+  activeRack = racks.length - 1;
+  activeBin  = 0;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+  document.getElementById('refInput').focus();
+}
+
+function switchRack(i) {
+  editingCell = null; openNotes = null;
+  activeRack = i;
+  activeBin  = racks[i].bins.length - 1;
+  document.getElementById('dupWarn').classList.remove('visible');
+  render();
+}
+
+// ---- Remove / clear ----
+function removeItem(bi, ii) {
+  racks[activeRack].bins[bi].items.splice(ii, 1);
+  document.getElementById('dupWarn').classList.remove('visible');
+  recomputeDups(); render();
+}
+
+function removeLastBin() {
+  const rack = racks[activeRack];
+  if (rack.bins.length <= 1) { rack.bins[0].items = []; activeBin = 0; }
+  else { rack.bins.pop(); activeBin = rack.bins.length - 1; }
+  rack.bins.forEach((b, i) => b.letter = binLetter(i));
+  recomputeDups(); render();
+}
+
+function clearActiveRack() {
+  racks[activeRack].bins = [makeBin(0)];
+  activeBin = 0;
+  recomputeDups(); render();
+}
+
+// ---- Editing ----
+function startEdit(bi, ii, field) {
+  editingCell = { bi, ii, field };
+  renderRows();
+  const el = document.getElementById('inline-edit-input');
+  if (el) { el.focus(); el.select(); }
+}
+
+function commitEdit(bi, ii, field) {
+  const el = document.getElementById('inline-edit-input');
+  if (!el) { editingCell = null; return; }
+  const val = el.value.trim();
+  const item = racks[activeRack].bins[bi].items[ii];
+  if (field === 'ref' && val) item.ref = val;
+  if (field === 'seq') item.seqOverride = val || null;
+  editingCell = null;
+  recomputeDups(); render();
+}
+
+function cancelEdit() { editingCell = null; renderRows(); }
+
+// ---- Bin letter edit ----
+function commitBinLetter(bi, val) {
+  if (val.trim()) racks[activeRack].bins[bi].letter = val.trim().toUpperCase();
+  renderRows();
+}
+
+// ---- Notes toggle ----
+function toggleNotes(bi, ii) {
+  if (openNotes && openNotes.bi === bi && openNotes.ii === ii) {
+    openNotes = null;
+  } else {
+    openNotes = { bi, ii };
+  }
+  renderRows();
+  if (openNotes) {
+    const el = document.getElementById('note-input');
+    if (el) el.focus();
+  }
+}
+
+function saveNote(bi, ii) {
+  const el = document.getElementById('note-input');
+  if (el) racks[activeRack].bins[bi].items[ii].note = el.value;
+  openNotes = null;
+  renderRows();
+}
+
+// ---- Per-item par toggle ----
+function togglePar(bi, ii) {
+  if (openPar && openPar.bi === bi && openPar.ii === ii) {
+    openPar = null;
+  } else {
+    openPar = { bi, ii };
+  }
+  renderRows();
+  if (openPar) {
+    const el = document.getElementById('par-min-input');
+    if (el) el.focus();
+  }
+}
+
+function savePar(bi, ii) {
+  const minEl = document.getElementById('par-min-input');
+  const maxEl = document.getElementById('par-max-input');
+  const uomEl = document.getElementById('par-uom-input');
+  if (minEl) commitItemPar(bi, ii, 'parMin', minEl.value);
+  if (maxEl) commitItemPar(bi, ii, 'parMax', maxEl.value);
+  if (uomEl) commitItemPar(bi, ii, 'uom', uomEl.value);
+  openPar = null;
+  renderRows();
+}
+
+// ---- Render ----
+function renderRows() {
+  const rack = racks[activeRack];
+  const container = document.getElementById('binRows');
+  if (!rack || rack.bins.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📦</div><p>No bins — tap <b>Place</b> to start.</p></div>`;
+    return;
+  }
+
+  let html = '';
+  rack.bins.forEach((bin, bi) => {
+    const isActive = bi === activeBin;
+    html += `<div class="bin-group" id="bingroup-${bi}">`;
+
+    // Bin header with editable letter
+    html += `<div class="bin-header">
+      <span class="bin-header-letter">BIN</span>
+      <input class="bin-letter-edit" value="${bin.letter}"
+        onchange="commitBinLetter(${bi}, this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        title="Edit bin letter">
+      ${isActive ? '<span style="font-size:10px;color:var(--accent-dk);font-weight:700;margin-left:4px">▸ ACTIVE</span>' : ''}
+      <button class="btn btn-secondary bin-header-btn add-item-here" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="activeBin=${bi};render();document.getElementById('refInput').focus()">Set Active</button>
+    </div>`;
+
+    if (bin.items.length === 0) {
+      html += `<div class="bin-row">
+        <span class="bin-seq" style="color:#bcc5cf">'${rack.name}${bin.letter}01</span>
+        <span class="bin-name-cell">${bin.letter}</span>
+        <span class="ref-num empty">${isActive ? '▸ type item' : '— empty —'}</span>
+        <span class="notes-cell"></span>
+        <span></span>
+      </div>`;
+    } else {
+      bin.items.forEach((it, ii) => {
+        const isEditRef = editingCell?.bi===bi && editingCell?.ii===ii && editingCell?.field==='ref';
+        const isEditSeq = editingCell?.bi===bi && editingCell?.ii===ii && editingCell?.field==='seq';
+        const isNoteOpen = openNotes?.bi===bi && openNotes?.ii===ii;
+        const isParOpen = openPar?.bi===bi && openPar?.ii===ii;
+        const dupClass = it.isDup ? ' is-dup' : '';
+        const editClass = (isEditRef||isEditSeq) ? ' editing' : '';
+
+        html += `<div class="bin-row${dupClass}${editClass}">`;
+
+        // Sequence cell
+        if (isEditSeq) {
+          html += `<input id="inline-edit-input" class="bin-seq-edit" value="${(it.seqOverride||seqCode(activeRack,bin,ii)).replace(/^'/,'')}"
+            autocapitalize="characters" autocorrect="off"
+            onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii},'seq')}else if(event.key==='Escape'){cancelEdit()}"
+            onblur="commitEdit(${bi},${ii},'seq')">`;
+        } else {
+          const displaySeq = seqCode(activeRack, bin, ii);
+          html += `<span class="bin-seq" title="Click to edit sequence" style="cursor:pointer" onclick="startEdit(${bi},${ii},'seq')">${displaySeq}</span>`;
+        }
+
+        // Bin letter cell
+        html += `<span class="bin-name-cell">${bin.letter}</span>`;
+
+        // Ref cell
+        const parTag = itemParTag(it);
+        if (isEditRef) {
+          html += `<input id="inline-edit-input" class="inline-edit" value="${it.ref.replace(/"/g,'&quot;')}"
+            autocapitalize="characters" autocorrect="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii},'ref')}else if(event.key==='Escape'){cancelEdit()}"
+            onblur="commitEdit(${bi},${ii},'ref')">`;
+        } else {
+          html += `<span class="ref-num">${it.ref}${it.isDup?'<span class="dup-tag visible">DUP</span>':''}${parTag?`<span class="item-par-tag" title="Par level for this item">${parTag}</span>`:''}</span>`;
+        }
+
+        // Notes cell
+        html += `<span class="notes-cell" title="${it.note||''}">${it.note||''}</span>`;
+
+        // Actions
+        html += `<div class="row-actions">
+          <button class="icon-btn par-btn${parTag?' has-note':''}" onclick="togglePar(${bi},${ii})" title="Par level">📏</button>
+          <button class="icon-btn note-btn${it.note?' has-note':''}" onclick="toggleNotes(${bi},${ii})" title="Notes">📝</button>
+          ${(!isEditRef&&!isEditSeq)?`<button class="icon-btn" onclick="startEdit(${bi},${ii},'ref')" title="Edit ref">✎</button>`:''}
+          ${(isEditRef||isEditSeq)?`<button class="icon-btn" style="color:var(--accent-dk)" onclick="commitEdit(${bi},${ii},'${editingCell.field}')" title="Save">✓</button>`:''}
+          <button class="icon-btn del" onclick="removeItem(${bi},${ii})" title="Remove">×</button>
+        </div>`;
+
+        html += `</div>`; // bin-row
+
+        // Notes dropdown row
+        if (isNoteOpen) {
+          html += `<div class="notes-row open" style="background:#fafbfc;border-bottom:1px solid var(--rule);padding:8px 14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--mid);margin-bottom:5px">Note for ${seqCode(activeRack,bin,ii)}</div>
+            <textarea id="note-input" rows="2" placeholder="Add a note…"
+              style="width:100%;font-family:var(--sans);font-size:13px;padding:8px;border:1.5px solid var(--rule);border-radius:4px;resize:vertical"
+              onkeydown="if(event.key==='Enter'&&event.metaKey)saveNote(${bi},${ii})"
+            >${it.note||''}</textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveNote(${bi},${ii})">Save Note</button>
+              <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px" onclick="openNotes=null;renderRows()">Cancel</button>
+            </div>
+          </div>`;
+        }
+
+        // Par dropdown row
+        if (isParOpen) {
+          html += `<div class="notes-row open" style="background:#fafbfc;border-bottom:1px solid var(--rule);padding:8px 14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--mid);margin-bottom:5px">Par level for ${seqCode(activeRack,bin,ii)} (this item only)</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <label class="entry-par-lbl">Min</label>
+              <input id="par-min-input" class="par-input" type="number" min="0" placeholder="—" value="${it.parMin ?? ''}">
+              <label class="entry-par-lbl">Max</label>
+              <input id="par-max-input" class="par-input" type="number" min="0" placeholder="—" value="${it.parMax ?? ''}">
+              <label class="entry-par-lbl">UOM</label>
+              <input id="par-uom-input" class="uom-input" type="text" placeholder="—" maxlength="10"
+                autocapitalize="characters" autocorrect="off" spellcheck="false" value="${it.uom||''}">
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="savePar(${bi},${ii})">Save Par</button>
+              <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px" onclick="openPar=null;renderRows()">Cancel</button>
+            </div>
+          </div>`;
+        }
+      });
+    }
+
+    html += `</div>`; // bin-group
+
+    // "Insert bin after this one" row
+    html += `<div class="add-bin-row">
+      <button onclick="insertBinAfter(${bi})">+ Insert bin after ${bin.letter}</button>
+      <span>↑ adds new bin here</span>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function render() {
+  const rack = racks[activeRack];
+  const name = rack.name;
+
+  document.getElementById('rackBadge').textContent   = 'RACK ' + name.toUpperCase();
+  document.getElementById('rackNameInput').value      = name;
+
+  const isConsign = rack.isConsignment;
+  document.getElementById('consignBtn').classList.toggle('active', isConsign);
+  document.getElementById('consignBadge').style.display = isConsign ? '' : 'none';
+
+  // Tabs
+  const tabs = document.getElementById('rackTabs');
+  tabs.innerHTML = racks.map((r, i) => {
+    const cnt = r.bins.reduce((s,b)=>s+b.items.length,0);
+    const cls = [i===activeRack?'active':'', r.isConsignment?'consign-tab':''].filter(Boolean).join(' ');
+    return `<div class="rack-tab ${cls}" onclick="switchRack(${i})">
+      <span class="tab-name">${r.name.toUpperCase()}${r.isConsignment?' [C]':''}</span><span class="count">${cnt}</span>
+    </div>`;
+  }).join('') + `<button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;border-radius:4px" onclick="nextRack()">+ Rack</button>`;
+
+  // Stats
+  const itemCount = rack.bins.reduce((s,b)=>s+b.items.length,0);
+  const dupCount  = rack.bins.reduce((s,b)=>s+b.items.filter(it=>it.isDup).length,0);
+  document.getElementById('statBins').textContent  = rack.bins.length;
+  document.getElementById('statItems').textContent = itemCount;
+  document.getElementById('statDups').textContent  = dupCount;
+
+  const total = racks.reduce((s,r)=>s+r.bins.reduce((ss,b)=>ss+b.items.length,0),0);
+  document.getElementById('exportBtn').disabled = total === 0;
+
+  renderRows();
+}
+
+// ---- Toast ----
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.className=''; }, 2500);
+}
+
+// ---- Save / Load ----
+function saveProgress() {
+  const data = JSON.stringify({ racks, activeRack, activeBin }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='BinSequencer_Save.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Progress saved');
+}
+
+function loadProgress() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const saved = JSON.parse(ev.target.result);
+        if (!saved.racks || !Array.isArray(saved.racks)) throw 0;
+        racks = saved.racks; activeRack = saved.activeRack??0; activeBin = saved.activeBin??0;
+        // Backfill any missing fields for older saves
+        racks.forEach(r => {
+          if (r.isConsignment===undefined) r.isConsignment=false;
+          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; if(!('parMin' in it)) it.parMin=null; if(!('parMax' in it)) it.parMax=null; if(!('uom' in it)) it.uom=''; }); });
+        });
+        recomputeDups(); render();
+        showToast('✓ Progress loaded');
+      } catch { showToast('⚠ Could not read save file', 'error'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ---- CSV Export ----
+function exportCSV() {
+  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes','Par Min','Par Max','UOM']];
+  racks.forEach((rack,ri) => {
+    rack.bins.forEach(bin => {
+      if (bin.items.length === 0) {
+        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '', '', '', '']);
+      } else {
+        bin.items.forEach((it,ii) => {
+          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'', it.parMin ?? '', it.parMax ?? '', it.uom || '' ]);
+        });
+      }
+    });
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='TTJ_BinSequence.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Export downloaded');
+}
+
+function triggerShake(el) {
+  el.classList.remove('shake'); void el.offsetWidth;
+  el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),400);
+}
+
+init();
+</script>
+</body>
+</html>
