@@ -62,6 +62,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .dup-warning { display: none; background: var(--warn-dim); border: 1.5px solid #f5b97e; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 8px; }
 .dup-warning.visible { display: block; }
 
+.top-par-row { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+.top-par-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mid); display: block; margin-bottom: 6px; }
+.top-par-fields { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.top-par-fields label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
+
 .btn { padding: 10px 14px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.08s; white-space: nowrap; }
 .btn:active { transform: scale(0.97); }
 .btn-primary { background: var(--accent); color: #111; font-weight: 700; }
@@ -125,6 +130,19 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .bin-letter-edit:focus { outline: none; border-color: var(--accent-dk); }
 .bin-header .add-item-here { margin-left: auto; font-size: 11px; padding: 4px 10px; }
 .bin-header .add-bin-after { font-size: 11px; padding: 4px 10px; }
+
+.par-group { display: flex; align-items: center; gap: 5px; }
+.par-group label { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
+.par-input { font-family: var(--mono); font-size: 11px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 5px; width: 42px; color: var(--ink); text-align: center; }
+.par-input:focus { outline: none; border-color: var(--accent-dk); }
+.uom-input { font-family: var(--mono); font-size: 11px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 6px; width: 60px; color: var(--ink); text-transform: uppercase; }
+.uom-input:focus { outline: none; border-color: var(--accent-dk); }
+.par-status { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+.par-status.low { background: var(--warn-dim); color: var(--warn); }
+.par-status.over { background: var(--consign-dim); color: var(--consign); }
+.par-status.ok { background: var(--accent-dim); color: var(--accent-dk); }
+
+.par-summary { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--mid); background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 2px 7px; letter-spacing: 0.03em; }
 
 .bin-row { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f0f3f6; transition: background 0.1s; }
 .bin-row:last-child { border-bottom: none; }
@@ -194,7 +212,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
   .rack-col-header,.bin-row { grid-template-columns: 90px 50px 1fr 80px; gap: 8px; padding: 10px 12px; }
   .rack-col-header span:nth-child(4),.bin-row .notes-cell { display: none; }
   .icon-btn { font-size: 18px; padding: 6px; }
-  .bin-header { padding: 6px 10px; }
+  .bin-header { padding: 6px 10px; flex-wrap: wrap; row-gap: 6px; }
+  .top-par-fields { row-gap: 6px; }
+  .bin-header .add-item-here { margin-left: auto; }
 }
 @media (max-width: 380px) {
   header h1 { display: none; }
@@ -242,6 +262,21 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
         <button class="btn btn-primary" onclick="placeItem()">Place</button>
       </div>
       <div class="dup-warning" id="dupWarn"></div>
+      <div class="top-par-row">
+        <span class="top-par-lbl">Par for active bin (optional):</span>
+        <div class="top-par-fields">
+          <label>Min</label>
+          <input class="par-input" id="topParMin" type="number" min="0" placeholder="—"
+            onchange="commitParLevel(activeBin,'parMin',this.value)">
+          <label>Max</label>
+          <input class="par-input" id="topParMax" type="number" min="0" placeholder="—"
+            onchange="commitParLevel(activeBin,'parMax',this.value)">
+          <label>UOM</label>
+          <input class="uom-input" id="topParUom" type="text" placeholder="—" maxlength="10"
+            autocapitalize="characters" autocorrect="off" spellcheck="false"
+            onchange="commitUom(activeBin, this.value)">
+        </div>
+      </div>
     </div>
 
     <div class="panel-scroll">
@@ -320,11 +355,13 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 <script>
 /*
  * Model:  racks[] → { name, isConsignment, bins[] }
- *         bins[]  → { letter, items[] }
+ *         bins[]  → { letter, items[], parMin, parMax, uom }
  *         items[] → { ref, note, isDup, seqOverride }
  *
  * Sequence: '{rackName}{binLetter}{itemIdx padded 2}'  e.g. '01A01
  * seqOverride lets the user manually edit the displayed sequence code.
+ * parMin/parMax are optional par-level stocking targets for a bin (null = not set).
+ * uom is an optional unit of measure for a bin's par level (e.g. EA, CS, BOX; '' = not set).
  */
 
 let racks      = [];
@@ -359,7 +396,44 @@ function seqCode(rackIdx, bin, itemIdx) {
 }
 
 function makeRack(name) { return { name: name ?? '01', isConsignment: false, bins: [makeBin(0)] }; }
-function makeBin(idx)   { return { letter: binLetter(idx), items: [] }; }
+function makeBin(idx)   { return { letter: binLetter(idx), items: [], parMin: null, parMax: null, uom: '' }; }
+
+// ---- Par level helpers ----
+function commitParLevel(bi, field, val) {
+  const bin = racks[activeRack].bins[bi];
+  const trimmed = val.trim();
+  if (trimmed === '') { bin[field] = null; }
+  else {
+    const n = parseInt(trimmed, 10);
+    bin[field] = Number.isFinite(n) ? n : null;
+  }
+  renderRows();
+}
+
+function commitUom(bi, val) {
+  racks[activeRack].bins[bi].uom = val.trim().toUpperCase();
+  renderRows();
+}
+
+function syncTopParFields() {
+  const bin = racks[activeRack]?.bins[activeBin];
+  if (!bin) return;
+  const minEl = document.getElementById('topParMin');
+  const maxEl = document.getElementById('topParMax');
+  const uomEl = document.getElementById('topParUom');
+  if (minEl) minEl.value = bin.parMin ?? '';
+  if (maxEl) maxEl.value = bin.parMax ?? '';
+  if (uomEl) uomEl.value = bin.uom || '';
+}
+
+function parStatus(bin) {
+  const count = bin.items.length;
+  if (bin.parMin == null && bin.parMax == null) return null;
+  const unit = bin.uom ? ` ${bin.uom}` : '';
+  if (bin.parMin != null && count < bin.parMin) return { label: `LOW (min ${bin.parMin}${unit})`, cls: 'low' };
+  if (bin.parMax != null && count > bin.parMax) return { label: `OVER (max ${bin.parMax}${unit})`, cls: 'over' };
+  return { label: 'IN RANGE', cls: 'ok' };
+}
 function makeItem(ref)  { return { ref, note: '', isDup: false, seqOverride: null }; }
 
 function init() { racks = [makeRack('01')]; activeRack = 0; activeBin = 0; render(); }
@@ -555,6 +629,10 @@ function renderRows() {
     html += `<div class="bin-group" id="bingroup-${bi}">`;
 
     // Bin header with editable letter
+    const status = parStatus(bin);
+    const parSummary = (bin.parMin != null || bin.parMax != null)
+      ? `${bin.parMin ?? '–'}–${bin.parMax ?? '–'}${bin.uom ? ' ' + bin.uom : ''}`
+      : '';
     html += `<div class="bin-header">
       <span class="bin-header-letter">BIN</span>
       <input class="bin-letter-edit" value="${bin.letter}"
@@ -562,7 +640,9 @@ function renderRows() {
         onkeydown="if(event.key==='Enter')this.blur()"
         title="Edit bin letter">
       ${isActive ? '<span style="font-size:10px;color:var(--accent-dk);font-weight:700;margin-left:4px">▸ ACTIVE</span>' : ''}
-      <button class="btn btn-secondary bin-header-btn add-item-here" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="activeBin=${bi};document.getElementById('refInput').focus()">Set Active</button>
+      ${parSummary ? `<span class="par-summary" title="Par level (set from Add Item panel when this bin is active)">Par: ${parSummary}</span>` : ''}
+      ${status ? `<span class="par-status ${status.cls}">${status.label}</span>` : ''}
+      <button class="btn btn-secondary bin-header-btn add-item-here" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="activeBin=${bi};render();document.getElementById('refInput').focus()">Set Active</button>
     </div>`;
 
     if (bin.items.length === 0) {
@@ -680,6 +760,8 @@ function render() {
   const total = racks.reduce((s,r)=>s+r.bins.reduce((ss,b)=>ss+b.items.length,0),0);
   document.getElementById('exportBtn').disabled = total === 0;
 
+  syncTopParFields();
+
   renderRows();
 }
 
@@ -714,7 +796,7 @@ function loadProgress() {
         // Backfill any missing fields for older saves
         racks.forEach(r => {
           if (r.isConsignment===undefined) r.isConsignment=false;
-          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; }); });
+          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); if(!('parMin' in b)) b.parMin=null; if(!('parMax' in b)) b.parMax=null; if(!('uom' in b)) b.uom=''; b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; }); });
         });
         recomputeDups(); render();
         showToast('✓ Progress loaded');
@@ -727,14 +809,19 @@ function loadProgress() {
 
 // ---- CSV Export ----
 function exportCSV() {
-  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes']];
+  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes','Par Min','Par Max','UOM','Par Status']];
   racks.forEach((rack,ri) => {
     rack.bins.forEach(bin => {
+      const st = parStatus(bin);
+      const parMinTxt = bin.parMin ?? '';
+      const parMaxTxt = bin.parMax ?? '';
+      const uomTxt = bin.uom || '';
+      const stTxt = st ? st.label : '';
       if (bin.items.length === 0) {
-        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '']);
+        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '', parMinTxt, parMaxTxt, uomTxt, stTxt]);
       } else {
         bin.items.forEach((it,ii) => {
-          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'' ]);
+          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'', parMinTxt, parMaxTxt, uomTxt, stTxt ]);
         });
       }
     });
