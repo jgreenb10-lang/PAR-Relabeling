@@ -58,6 +58,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 #refInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; }
 #refInput.shake { animation: shake 0.3s ease; border-color: var(--warn); background: var(--warn-dim); }
 .entry-row .btn-primary { flex: 1 1 100%; }
+#topNoteInput { flex: 1 1 100%; font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--mid); }
+#topNoteInput:focus { outline: none; border-color: var(--accent-dk); background: #fff; color: var(--ink); }
 @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
 .dup-warning { display: none; background: var(--warn-dim); border: 1.5px solid #f5b97e; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 8px; }
@@ -106,6 +108,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .rack-tab.consign-tab { border-top: 2px solid var(--consign); }
 .rack-tab.consign-tab.active { background: var(--consign); }
 .rack-tab .count { opacity: 0.6; font-size: 10px; margin-left: 4px; }
+.rack-tab-del { background: none; border: none; cursor: pointer; color: inherit; opacity: 0.5; font-size: 13px; font-weight: 700; margin-left: 6px; padding: 0 2px; line-height: 1; }
+.rack-tab-del:hover { opacity: 1; color: var(--warn); }
 
 .rack-container { background: var(--surface); border: 2px solid var(--steel); border-radius: 0 6px 6px 6px; overflow: hidden; }
 
@@ -119,8 +123,12 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .rack-col-header { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; background: var(--steel); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; gap: 10px; }
 
 /* Bin group */
-.bin-group { border-bottom: 2px solid #eaf0f5; }
+.bin-group { border-bottom: 2px solid #eaf0f5; transition: background 0.1s, box-shadow 0.1s; }
 .bin-group:last-child { border-bottom: none; }
+.bin-group.drag-over { background: var(--accent-dim); box-shadow: inset 0 0 0 2px var(--accent-dk); }
+
+.bin-row[draggable="true"] { cursor: grab; }
+.bin-row.dragging { opacity: 0.4; }
 
 .bin-header { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: #f8fafb; border-bottom: 1px solid var(--rule); }
 .bin-header-letter { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--mid); letter-spacing: 0.08em; }
@@ -135,9 +143,18 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .par-input:focus { outline: none; border-color: var(--accent-dk); }
 .uom-input { font-family: var(--mono); font-size: 11px; font-weight: 700; background: #fff; border: 1.5px solid #c9d5e0; border-radius: 3px; padding: 2px 6px; width: 60px; color: var(--ink); text-transform: uppercase; }
 .uom-input:focus { outline: none; border-color: var(--accent-dk); }
+.flag-select { font-family: var(--sans); font-size: 13px; font-weight: 600; background: #fff; border: 1.5px solid var(--rule); border-radius: 4px; padding: 6px 8px; color: var(--ink); }
+.flag-select:focus { outline: none; border-color: var(--accent-dk); }
 
 .item-par-tag { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--accent-dk); background: var(--accent-dim); border: 1px solid #b5d97a; border-radius: 3px; padding: 1px 5px; margin-left: 6px; letter-spacing: 0.03em; vertical-align: middle; }
 .par-btn.has-note { color: var(--accent-dk); }
+
+.item-flag-tag { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700; border-radius: 3px; padding: 1px 5px; margin-left: 6px; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle; }
+.item-flag-tag.flag-removal { background: var(--warn); color: #fff; }
+.item-flag-tag.flag-overstock { background: var(--consign); color: #fff; }
+.item-flag-tag.flag-consignment { background: #8b5cf6; color: #fff; }
+.item-flag-tag.flag-other { background: var(--mid); color: #fff; }
+.flag-btn.has-note { color: var(--warn); }
 
 .bin-row { display: grid; grid-template-columns: 110px 70px 1fr 1fr 90px; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f0f3f6; transition: background 0.1s; }
 .bin-row:last-child { border-bottom: none; }
@@ -145,6 +162,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 .bin-row.is-dup { background: var(--warn-dim); border-left: 4px solid var(--warn); padding-left: 10px; }
 .bin-row.is-dup:hover { background: #fdecd7; }
 .bin-row.editing { background: var(--accent-dim); }
+.bin-row.flag-removal { background: var(--warn-dim); border-left: 4px solid var(--warn); padding-left: 10px; }
+.bin-row.flag-overstock { background: var(--consign-dim); border-left: 4px solid var(--consign); padding-left: 10px; }
+.bin-row.flag-consignment { background: #f3f0ff; border-left: 4px solid #8b5cf6; padding-left: 10px; }
+.bin-row.flag-other { background: #f1f2f4; border-left: 4px solid var(--mid); padding-left: 10px; }
 
 .bin-seq { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-dk); }
 .bin-seq-edit { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border: 2px solid var(--accent-dk); border-radius: 3px; padding: 3px 7px; width: 100%; text-transform: uppercase; color: var(--accent-dk); }
@@ -254,6 +275,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
         <input type="text" id="refInput" placeholder="Reference number…"
           autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
           onkeydown="if(event.key==='Enter') placeItem()">
+        <input type="text" id="topNoteInput" placeholder="Notes for this item (optional)…"
+          autocomplete="off" autocorrect="off" spellcheck="true" enterkeyhint="done"
+          style="font-family:var(--sans);font-style:italic"
+          onkeydown="if(event.key==='Enter') placeItem()">
         <label class="entry-par-lbl">Min</label>
         <input class="par-input" id="topParMin" type="number" min="0" placeholder="—"
           title="Optional par minimum for this item">
@@ -280,7 +305,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
           </button>
           <button class="btn nav-btn" onclick="nextBin()">
             <span class="icon">⬇</span>
-            <span class="txt"><b>Next Bin</b><small>Move to next bin (01A→01B01)</small></span>
+            <span class="txt"><b>Next Shelf</b><small>Move to next shelf (01A→01B01)</small></span>
           </button>
           <button class="btn nav-btn" onclick="nextRack()">
             <span class="icon">⊞</span>
@@ -346,13 +371,18 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent-dk); bac
 /*
  * Model:  racks[] → { name, isConsignment, bins[] }
  *         bins[]  → { letter, items[] }
- *         items[] → { ref, note, isDup, seqOverride, parMin, parMax, uom }
+ *         items[] → { ref, note, isDup, seqOverride, parMin, parMax, uom, flag }
  *
  * Sequence: '{rackName}{binLetter}{itemIdx padded 2}'  e.g. '01A01
  * seqOverride lets the user manually edit the displayed sequence code.
  * parMin/parMax are optional par-level stocking targets for THIS SPECIFIC ITEM (null = not set).
  * uom is an optional unit of measure for that item's par level (e.g. EA, CS, BOX; '' = not set).
- * The Min/Max/UOM fields in the Add Item panel are captured onto each item at the moment it's placed.
+ * flag is an optional per-item status: '' | 'removal' | 'overstock' | 'consignment' | 'other'.
+ * The Min/Max/UOM fields in the Add Item panel, plus the Notes field under the ref #,
+ * are captured onto each item at the moment it's placed. Notes clears after each placement;
+ * Min/Max/UOM persist as sticky defaults for the next item.
+ * Items can be dragged (grab anywhere on the row) and dropped onto a different bin group
+ * to move them — use this when staff forgot to click "Next Shelf" before scanning.
  */
 
 let racks      = [];
@@ -361,6 +391,8 @@ let activeBin  = 0;
 let editingCell = null;  // { bi, ii, field: 'ref'|'seq' }
 let openNotes   = null;  // { bi, ii }
 let openPar     = null;  // { bi, ii }
+let openFlag    = null;  // { bi, ii }
+let dragSource  = null;  // { bi, ii } — item currently being dragged
 
 // ---- Helpers ----
 function numericIncrement(name) {
@@ -420,7 +452,17 @@ function itemParTag(it) {
   const unit = it.uom ? (range ? ` ${it.uom}` : it.uom) : '';
   return range || unit ? `${range}${unit}` : '';
 }
-function makeItem(ref)  { return { ref, note: '', isDup: false, seqOverride: null, parMin: null, parMax: null, uom: '' }; }
+function makeItem(ref)  { return { ref, note: '', isDup: false, seqOverride: null, parMin: null, parMax: null, uom: '', flag: '' }; }
+
+// ---- Flag helpers ----
+// flag values: '' (none), 'removal', 'overstock', 'consignment', 'other'
+const FLAG_META = {
+  removal:     { label: 'REMOVE',   cls: 'flag-removal' },
+  overstock:   { label: 'OVERSTOCK', cls: 'flag-overstock' },
+  consignment: { label: 'CONSIGN',  cls: 'flag-consignment' },
+  other:       { label: 'FLAGGED',  cls: 'flag-other' }
+};
+function flagMeta(flag) { return FLAG_META[flag] || null; }
 
 function init() { racks = [makeRack('01')]; activeRack = 0; activeBin = 0; render(); }
 
@@ -479,6 +521,8 @@ function placeItem() {
   newItem.parMin = par.parMin;
   newItem.parMax = par.parMax;
   newItem.uom = par.uom;
+  const noteInput = document.getElementById('topNoteInput');
+  if (noteInput) newItem.note = noteInput.value.trim();
   racks[activeRack].bins[activeBin].items.push(newItem);
 
   if (dupSeq) {
@@ -487,6 +531,7 @@ function placeItem() {
   }
 
   input.value = '';
+  if (noteInput) noteInput.value = '';
   input.focus();
   recomputeDups();
   render();
@@ -534,6 +579,55 @@ function switchRack(i) {
   activeBin  = racks[i].bins.length - 1;
   document.getElementById('dupWarn').classList.remove('visible');
   render();
+}
+
+// ---- Delete rack ----
+function deleteRack(i, event) {
+  if (event) event.stopPropagation();
+  if (racks.length <= 1) { showToast('⚠ Can’t delete the only rack', 'error'); return; }
+  const label = racks[i].name.toUpperCase();
+  if (!confirm(`Delete rack "${label}"? This removes all its bins and items and cannot be undone.`)) return;
+  racks.splice(i, 1);
+  if (activeRack === i) {
+    activeRack = Math.max(0, i - 1);
+  } else if (activeRack > i) {
+    activeRack -= 1;
+  }
+  activeBin = racks[activeRack].bins.length - 1;
+  editingCell = null; openNotes = null; openPar = null; openFlag = null;
+  recomputeDups();
+  render();
+  showToast(`✓ Rack ${label} deleted`);
+}
+
+// ---- Drag and drop items between bins ----
+function dragStartItem(event, bi, ii) {
+  dragSource = { bi, ii };
+  event.dataTransfer.effectAllowed = 'move';
+  try { event.dataTransfer.setData('text/plain', ''); } catch (e) {}
+  event.target.classList.add('dragging');
+}
+
+function dragEndItem(event) {
+  event.target.classList.remove('dragging');
+  dragSource = null;
+}
+
+function dropItemOnBin(event, targetBi) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (!dragSource) return;
+  const { bi: srcBi, ii: srcIi } = dragSource;
+  dragSource = null;
+  const rack = racks[activeRack];
+  if (!rack || !rack.bins[srcBi] || !rack.bins[targetBi]) return;
+  if (srcBi === targetBi) return; // already in this bin
+  const [item] = rack.bins[srcBi].items.splice(srcIi, 1);
+  if (!item) return;
+  rack.bins[targetBi].items.push(item);
+  recomputeDups();
+  render();
+  showToast(`✓ Moved to bin ${rack.bins[targetBi].letter}`);
 }
 
 // ---- Remove / clear ----
@@ -630,6 +724,27 @@ function savePar(bi, ii) {
   renderRows();
 }
 
+// ---- Per-item flag toggle ----
+function toggleFlag(bi, ii) {
+  if (openFlag && openFlag.bi === bi && openFlag.ii === ii) {
+    openFlag = null;
+  } else {
+    openFlag = { bi, ii };
+  }
+  renderRows();
+  if (openFlag) {
+    const el = document.getElementById('flag-select-input');
+    if (el) el.focus();
+  }
+}
+
+function saveFlag(bi, ii) {
+  const el = document.getElementById('flag-select-input');
+  if (el) racks[activeRack].bins[bi].items[ii].flag = el.value;
+  openFlag = null;
+  renderRows();
+}
+
 // ---- Render ----
 function renderRows() {
   const rack = racks[activeRack];
@@ -642,7 +757,7 @@ function renderRows() {
   let html = '';
   rack.bins.forEach((bin, bi) => {
     const isActive = bi === activeBin;
-    html += `<div class="bin-group" id="bingroup-${bi}">`;
+    html += `<div class="bin-group" id="bingroup-${bi}" ondragover="event.preventDefault()" ondragenter="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropItemOnBin(event,${bi})">`;
 
     // Bin header with editable letter
     html += `<div class="bin-header">
@@ -669,10 +784,13 @@ function renderRows() {
         const isEditSeq = editingCell?.bi===bi && editingCell?.ii===ii && editingCell?.field==='seq';
         const isNoteOpen = openNotes?.bi===bi && openNotes?.ii===ii;
         const isParOpen = openPar?.bi===bi && openPar?.ii===ii;
+        const isFlagOpen = openFlag?.bi===bi && openFlag?.ii===ii;
         const dupClass = it.isDup ? ' is-dup' : '';
         const editClass = (isEditRef||isEditSeq) ? ' editing' : '';
+        const fMeta = flagMeta(it.flag);
+        const flagRowClass = fMeta ? ` ${fMeta.cls}` : '';
 
-        html += `<div class="bin-row${dupClass}${editClass}">`;
+        html += `<div class="bin-row${dupClass}${editClass}${flagRowClass}" draggable="true" ondragstart="dragStartItem(event,${bi},${ii})" ondragend="dragEndItem(event)" title="Drag to move to another bin">`;
 
         // Sequence cell
         if (isEditSeq) {
@@ -696,7 +814,7 @@ function renderRows() {
             onkeydown="if(event.key==='Enter'){commitEdit(${bi},${ii},'ref')}else if(event.key==='Escape'){cancelEdit()}"
             onblur="commitEdit(${bi},${ii},'ref')">`;
         } else {
-          html += `<span class="ref-num">${it.ref}${it.isDup?'<span class="dup-tag visible">DUP</span>':''}${parTag?`<span class="item-par-tag" title="Par level for this item">${parTag}</span>`:''}</span>`;
+          html += `<span class="ref-num">${it.ref}${it.isDup?'<span class="dup-tag visible">DUP</span>':''}${parTag?`<span class="item-par-tag" title="Par level for this item">${parTag}</span>`:''}${fMeta?`<span class="item-flag-tag ${fMeta.cls}" title="Flagged: ${fMeta.label}">${fMeta.label}</span>`:''}</span>`;
         }
 
         // Notes cell
@@ -704,6 +822,7 @@ function renderRows() {
 
         // Actions
         html += `<div class="row-actions">
+          <button class="icon-btn flag-btn${fMeta?' has-note':''}" onclick="toggleFlag(${bi},${ii})" title="Flag item">🚩</button>
           <button class="icon-btn par-btn${parTag?' has-note':''}" onclick="togglePar(${bi},${ii})" title="Par level">📏</button>
           <button class="icon-btn note-btn${it.note?' has-note':''}" onclick="toggleNotes(${bi},${ii})" title="Notes">📝</button>
           ${(!isEditRef&&!isEditSeq)?`<button class="icon-btn" onclick="startEdit(${bi},${ii},'ref')" title="Edit ref">✎</button>`:''}
@@ -747,6 +866,24 @@ function renderRows() {
             </div>
           </div>`;
         }
+
+        // Flag dropdown row
+        if (isFlagOpen) {
+          html += `<div class="notes-row open" style="background:#fafbfc;border-bottom:1px solid var(--rule);padding:8px 14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--mid);margin-bottom:5px">Flag for ${seqCode(activeRack,bin,ii)} (this item only)</div>
+            <select id="flag-select-input" class="flag-select">
+              <option value=""${!it.flag?' selected':''}>No flag</option>
+              <option value="removal"${it.flag==='removal'?' selected':''}>Removal — obsolete / remove</option>
+              <option value="overstock"${it.flag==='overstock'?' selected':''}>Overstock</option>
+              <option value="consignment"${it.flag==='consignment'?' selected':''}>Consignment</option>
+              <option value="other"${it.flag==='other'?' selected':''}>Other</option>
+            </select>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="saveFlag(${bi},${ii})">Save Flag</button>
+              <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px" onclick="openFlag=null;renderRows()">Cancel</button>
+            </div>
+          </div>`;
+        }
       });
     }
 
@@ -779,7 +916,7 @@ function render() {
     const cnt = r.bins.reduce((s,b)=>s+b.items.length,0);
     const cls = [i===activeRack?'active':'', r.isConsignment?'consign-tab':''].filter(Boolean).join(' ');
     return `<div class="rack-tab ${cls}" onclick="switchRack(${i})">
-      <span class="tab-name">${r.name.toUpperCase()}${r.isConsignment?' [C]':''}</span><span class="count">${cnt}</span>
+      <span class="tab-name">${r.name.toUpperCase()}${r.isConsignment?' [C]':''}</span><span class="count">${cnt}</span><button class="rack-tab-del" onclick="deleteRack(${i}, event)" title="Delete this rack">×</button>
     </div>`;
   }).join('') + `<button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;border-radius:4px" onclick="nextRack()">+ Rack</button>`;
 
@@ -827,7 +964,7 @@ function loadProgress() {
         // Backfill any missing fields for older saves
         racks.forEach(r => {
           if (r.isConsignment===undefined) r.isConsignment=false;
-          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; if(!('parMin' in it)) it.parMin=null; if(!('parMax' in it)) it.parMax=null; if(!('uom' in it)) it.uom=''; }); });
+          r.bins.forEach((b,i)=>{ if(!b.letter) b.letter=binLetter(i); b.items.forEach(it=>{ if(!('note' in it)) it.note=''; if(!('seqOverride' in it)) it.seqOverride=null; if(!('parMin' in it)) it.parMin=null; if(!('parMax' in it)) it.parMax=null; if(!('uom' in it)) it.uom=''; if(!('flag' in it)) it.flag=''; }); });
         });
         recomputeDups(); render();
         showToast('✓ Progress loaded');
@@ -840,22 +977,31 @@ function loadProgress() {
 
 // ---- CSV Export ----
 function exportCSV() {
-  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes','Par Min','Par Max','UOM']];
+  const rows = [['Bin Sequence','Reference Number','Consignment','Duplicate?','Notes','Par Min','Par Max','UOM','Flag']];
   racks.forEach((rack,ri) => {
     rack.bins.forEach(bin => {
       if (bin.items.length === 0) {
-        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '', '', '', '']);
+        rows.push([`'${rack.name}${bin.letter}01`, '', rack.isConsignment?'YES':'', '', '', '', '', '', '']);
       } else {
         bin.items.forEach((it,ii) => {
-          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'', it.parMin ?? '', it.parMax ?? '', it.uom || '' ]);
+          const fMeta = flagMeta(it.flag);
+          rows.push([ seqCode(ri,bin,ii), it.ref, rack.isConsignment?'YES':'', it.isDup?'DUPLICATE':'', it.note||'', it.parMin ?? '', it.parMax ?? '', it.uom || '', fMeta ? fMeta.label : '' ]);
         });
       }
     });
   });
+
+  const today = new Date().toISOString().slice(0,10);
+  const defaultName = `TTJ_BinSequence_${today}`;
+  let fileName = prompt('Name this inventory file:', defaultName);
+  if (fileName === null) return; // cancelled
+  fileName = fileName.trim() || defaultName;
+  if (!/\.csv$/i.test(fileName)) fileName += '.csv';
+
   const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='TTJ_BinSequence.csv'; a.click();
+  const a = document.createElement('a'); a.href=url; a.download=fileName; a.click();
   URL.revokeObjectURL(url);
   showToast('✓ Export downloaded');
 }
